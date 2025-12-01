@@ -1,0 +1,154 @@
+@page "/"
+@layout CustomerLayout
+@inject NavigationManager NavigationManager
+@inject Frontend.Services.IAuthService AuthService
+
+<PageTitle>Home - Car Rental System</PageTitle>
+
+<!-- Hero Section -->
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudPaper Elevation="0" Class="pa-8 text-center" Style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; border-radius: 16px;">
+        <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Large" Class="mb-4" Style="font-size: 5rem;" />
+        <MudText Typo="Typo.h2" Class="fw-bold mb-3">Welcome to Car Rental System</MudText>
+        <MudText Typo="Typo.h5" Class="mb-6">Find the perfect vehicle for your journey</MudText>
+        <MudStack Row="true" Justify="Justify.Center" Spacing="3">
+            @if (isAuthenticated)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Surface" Size="Size.Large" StartIcon="@Icons.Material.Filled.DirectionsCar" OnClick="NavigateToVehicles">
+                    Browse Vehicles
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Surface" Size="Size.Large" StartIcon="@Icons.Material.Filled.EventNote" OnClick="NavigateToRentals">
+                    My Rentals
+                </MudButton>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Surface" Size="Size.Large" StartIcon="@Icons.Material.Filled.DirectionsCar" OnClick="NavigateToVehicles">
+                    Browse Vehicles
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Surface" Size="Size.Large" StartIcon="@Icons.Material.Filled.Login" OnClick="NavigateToLogin">
+                    Login to Rent
+                </MudButton>
+            }
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+<!-- Features Section -->
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 mb-8">
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="2" Style="height: 100%; transition: transform 0.2s;" Class="hover-card">
+                <MudCardContent Class="text-center pa-6">
+                    <MudIcon Icon="@Icons.Material.Filled.FlashOn" Color="Color.Primary" Size="Size.Large" Class="mb-3" Style="font-size: 4rem;" />
+                    <MudText Typo="Typo.h5" GutterBottom="true"><strong>Quick Booking</strong></MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Book your vehicle in just a few clicks with our streamlined process
+                    </MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="2" Style="height: 100%; transition: transform 0.2s;" Class="hover-card">
+                <MudCardContent Class="text-center pa-6">
+                    <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Color="Color.Success" Size="Size.Large" Class="mb-3" Style="font-size: 4rem;" />
+                    <MudText Typo="Typo.h5" GutterBottom="true"><strong>Secure & Safe</strong></MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        All our vehicles are regularly maintained and fully insured
+                    </MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="2" Style="height: 100%; transition: transform 0.2s;" Class="hover-card">
+                <MudCardContent Class="text-center pa-6">
+                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Warning" Size="Size.Large" Class="mb-3" Style="font-size: 4rem;" />
+                    <MudText Typo="Typo.h5" GutterBottom="true"><strong>Best Prices</strong></MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Competitive rates with flexible pricing strategies and loyalty rewards
+                    </MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<!-- Vehicle Categories -->
+<MudContainer MaxWidth="MaxWidth.Large" Class="mb-8">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6"><strong>Vehicle Categories</strong></MudText>
+    <MudGrid Spacing="3">
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-6 text-center hover-card" Style="transition: transform 0.2s; cursor: pointer;" @onclick='() => NavigateToCategory("Economy")'>
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Info" Size="Size.Large" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.subtitle1" Class="mt-2"><strong>Economy</strong></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Budget-friendly</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-6 text-center hover-card" Style="transition: transform 0.2s; cursor: pointer;" @onclick='() => NavigateToCategory("SUV")'>
+                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Success" Size="Size.Large" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.subtitle1" Class="mt-2"><strong>SUV</strong></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Family-sized</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-6 text-center hover-card" Style="transition: transform 0.2s; cursor: pointer;" @onclick='() => NavigateToCategory("Luxury")'>
+                <MudIcon Icon="@Icons.Material.Filled.Diamond" Color="Color.Warning" Size="Size.Large" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.subtitle1" Class="mt-2"><strong>Luxury</strong></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Premium comfort</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-6 text-center hover-card" Style="transition: transform 0.2s; cursor: pointer;" @onclick='() => NavigateToCategory("Sports")'>
+                <MudIcon Icon="@Icons.Material.Filled.Speed" Color="Color.Error" Size="Size.Large" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.subtitle1" Class="mt-2"><strong>Sports</strong></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">High-performance</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<!-- Call to Action -->
+@if (!isAuthenticated)
+{
+    <MudContainer MaxWidth="MaxWidth.Large" Class="mb-8">
+        <MudPaper Elevation="4" Class="pa-8 text-center" Style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; border-radius: 16px;">
+            <MudText Typo="Typo.h4" Class="mb-3"><strong>Ready to start your journey?</strong></MudText>
+            <MudText Typo="Typo.body1" Class="mb-6">
+                Join thousands of satisfied customers who trust us with their travel needs
+            </MudText>
+            <MudStack Row="true" Justify="Justify.Center" Spacing="3">
+                <MudButton Variant="Variant.Filled" Color="Color.Surface" Size="Size.Large" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="NavigateToRegister">
+                    Register Now
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Surface" Size="Size.Large" StartIcon="@Icons.Material.Filled.Login" OnClick="NavigateToLogin">
+                    Login
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudContainer>
+}
+
+<style>
+    .hover-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important;
+    }
+</style>
+
+@code {
+    private bool isAuthenticated = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isAuthenticated = await AuthService.IsAuthenticatedAsync();
+    }
+
+    private void NavigateToVehicles() => NavigationManager.NavigateTo("/vehicles/browse");
+    private void NavigateToRentals() => NavigationManager.NavigateTo("/my-rentals");
+    private void NavigateToLogin() => NavigationManager.NavigateTo("/login");
+    private void NavigateToRegister() => NavigationManager.NavigateTo("/register");
+    private void NavigateToCategory(string category) => NavigationManager.NavigateTo($"/vehicles/browse?category={category}");
+}

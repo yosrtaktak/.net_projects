@@ -1,0 +1,259 @@
+@page "/my-rentals"
+@layout CustomerLayout
+@inject IApiService ApiService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@using Frontend.Models
+
+<PageTitle>My Rentals - Car Rental System</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+    <MudStack Spacing="4">
+        <!-- Header -->
+        <MudPaper Elevation="0" Class="pa-4" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%);">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h3" Style="color: white;">
+                    <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Large" Class="mr-2" />
+                    <strong>My Rentals</strong>
+                </MudText>
+                <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.9);">
+                    Track your rental history and manage active bookings
+                </MudText>
+            </MudStack>
+        </MudPaper>
+
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (!myRentals.Any())
+        {
+            <MudPaper Elevation="2" Class="pa-8 text-center">
+                <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Large" Color="Color.Secondary" Style="font-size: 5rem;" />
+                <MudText Typo="Typo.h5" Color="Color.Secondary" Class="mt-4">No rentals yet</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+                    Start exploring our fleet and book your first vehicle!
+                </MudText>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.DirectionsCar"
+                           Href="/vehicles/browse"
+                           Size="Size.Large">
+                    Browse Vehicles
+                </MudButton>
+            </MudPaper>
+        }
+        else
+        {
+            <!-- Filter Tabs -->
+            <MudTabs Elevation="2" Rounded="true" Color="Color.Primary" @bind-ActivePanelIndex="activeTab">
+                <MudTabPanel Text="@($"All ({myRentals.Count})")" Icon="@Icons.Material.Filled.ViewList" />
+                <MudTabPanel Text="@($"Active ({myRentals.Count(r => r.Status == RentalStatus.Active)})")" Icon="@Icons.Material.Filled.DirectionsCar" />
+                <MudTabPanel Text="@($"Reserved ({myRentals.Count(r => r.Status == RentalStatus.Reserved)})")" Icon="@Icons.Material.Filled.Schedule" />
+                <MudTabPanel Text="@($"Completed ({myRentals.Count(r => r.Status == RentalStatus.Completed)})")" Icon="@Icons.Material.Filled.CheckCircle" />
+            </MudTabs>
+
+            <!-- Rentals Grid -->
+            <MudGrid Spacing="3">
+                @foreach (var rental in GetFilteredRentals())
+                {
+                    <MudItem xs="12">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudGrid>
+                                    <MudItem xs="12" md="3">
+                                        @if (!string.IsNullOrEmpty(rental.Vehicle?.ImageUrl))
+                                        {
+                                            <MudImage Src="@rental.Vehicle.ImageUrl" 
+                                                      Alt="@($"{rental.Vehicle.Brand} {rental.Vehicle.Model}")" 
+                                                      ObjectFit="ObjectFit.Cover" 
+                                                      Height="150" 
+                                                      Class="rounded" />
+                                        }
+                                        else
+                                        {
+                                            <MudPaper Elevation="0" Class="d-flex align-center justify-center" Style="height: 150px; background-color: var(--mud-palette-background-grey);">
+                                                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Large" Color="Color.Secondary" />
+                                            </MudPaper>
+                                        }
+                                    </MudItem>
+                                    
+                                    <MudItem xs="12" md="6">
+                                        <MudStack Spacing="2">
+                                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                                <MudText Typo="Typo.h5">
+                                                    @rental.Vehicle?.Brand @rental.Vehicle?.Model
+                                                </MudText>
+                                                <MudChip T="string" 
+                                                         Color="@GetStatusColor(rental.Status)" 
+                                                         Size="Size.Small">
+                                                    @rental.Status
+                                                </MudChip>
+                                            </MudStack>
+                                            
+                                            <MudStack Spacing="1">
+                                                <MudStack Row="true" Spacing="2">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" Color="Color.Secondary" />
+                                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                                        @rental.StartDate.ToString("MMM dd, yyyy") - @rental.EndDate.ToString("MMM dd, yyyy")
+                                                    </MudText>
+                                                </MudStack>
+                                                
+                                                <MudStack Row="true" Spacing="2">
+                                                    <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Color="Color.Secondary" />
+                                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                                        @((rental.EndDate - rental.StartDate).Days) days
+                                                    </MudText>
+                                                </MudStack>
+                                                
+                                                @if (rental.Vehicle != null)
+                                                {
+                                                    <MudStack Row="true" Spacing="2">
+                                                        <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" Color="Color.Secondary" />
+                                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                                            @rental.Vehicle.Category
+                                                        </MudText>
+                                                    </MudStack>
+                                                }
+                                            </MudStack>
+                                        </MudStack>
+                                    </MudItem>
+                                    
+                                    <MudItem xs="12" md="3">
+                                        <MudStack Spacing="2" Class="d-flex flex-column" Style="height: 100%;">
+                                            <MudStack Spacing="1" Class="flex-grow-1">
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Cost</MudText>
+                                                <MudText Typo="Typo.h4" Color="Color.Primary">
+                                                    <strong>$@(rental.TotalCost.ToString("N2"))</strong>
+                                                </MudText>
+                                            </MudStack>
+                                            
+                                            <MudStack Spacing="1">
+                                                @if (rental.Status == RentalStatus.Active || rental.Status == RentalStatus.Completed)
+                                                {
+                                                    <MudButton Variant="Variant.Outlined" 
+                                                               Color="Color.Warning" 
+                                                               FullWidth="true"
+                                                               StartIcon="@Icons.Material.Filled.ReportProblem"
+                                                               OnClick="@(() => ReportDamage(rental.Id))">
+                                                        Report Damage
+                                                    </MudButton>
+                                                }
+                                                
+                                                @if (rental.Status == RentalStatus.Reserved)
+                                                {
+                                                    <MudButton Variant="Variant.Text" 
+                                                               Color="Color.Error" 
+                                                               FullWidth="true"
+                                                               StartIcon="@Icons.Material.Filled.Cancel"
+                                                               OnClick="@(() => CancelRental(rental.Id))">
+                                                        Cancel Booking
+                                                    </MudButton>
+                                                }
+                                            </MudStack>
+                                        </MudStack>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            @if (!GetFilteredRentals().Any())
+            {
+                <MudPaper Elevation="0" Class="pa-8 text-center">
+                    <MudText Typo="Typo.body1" Color="Color.Secondary">
+                        No rentals in this category
+                    </MudText>
+                </MudPaper>
+            }
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private List<Rental> myRentals = new();
+    private bool isLoading = true;
+    private int activeTab = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMyRentals();
+    }
+
+    private async Task LoadMyRentals()
+    {
+        isLoading = true;
+        try
+        {
+            var username = await AuthService.GetUsernameAsync();
+            var allRentals = await ApiService.GetRentalsAsync();
+            
+            // Filter to only show current user's rentals
+            myRentals = allRentals
+                .Where(r => r.Customer?.Email == username)
+                .OrderByDescending(r => r.StartDate)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading rentals: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private List<Rental> GetFilteredRentals()
+    {
+        return activeTab switch
+        {
+            0 => myRentals,
+            1 => myRentals.Where(r => r.Status == RentalStatus.Active).ToList(),
+            2 => myRentals.Where(r => r.Status == RentalStatus.Reserved).ToList(),
+            3 => myRentals.Where(r => r.Status == RentalStatus.Completed).ToList(),
+            _ => myRentals
+        };
+    }
+
+    private void ReportDamage(int rentalId)
+    {
+        NavigationManager.NavigateTo($"/rentals/{rentalId}/report-damage");
+    }
+
+    private async Task CancelRental(int rentalId)
+    {
+        try
+        {
+            var success = await ApiService.CancelRentalAsync(rentalId);
+            if (success)
+            {
+                Snackbar.Add("Rental cancelled successfully", Severity.Success);
+                await LoadMyRentals();
+            }
+            else
+            {
+                Snackbar.Add("Failed to cancel rental", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private Color GetStatusColor(RentalStatus status)
+    {
+        return status switch
+        {
+            RentalStatus.Reserved => Color.Info,
+            RentalStatus.Active => Color.Success,
+            RentalStatus.Completed => Color.Default,
+            RentalStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+    }
+}

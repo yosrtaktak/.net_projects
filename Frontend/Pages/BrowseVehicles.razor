@@ -1,0 +1,272 @@
+@page "/vehicles/browse"
+@layout CustomerLayout
+@inject IApiService ApiService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@using Frontend.Models
+
+<PageTitle>Browse Vehicles - Car Rental</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
+    <MudStack Spacing="4">
+        <!-- Header -->
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h3"><strong>Find Your Perfect Ride</strong></MudText>
+            <MudText Typo="Typo.body1" Color="Color.Secondary">
+                Choose from our wide selection of quality vehicles
+            </MudText>
+        </MudStack>
+
+        @if (isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            <!-- Filters -->
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="VehicleCategory?" Label="Category" @bind-Value="selectedCategory" Clearable="true">
+                            @foreach (var category in Enum.GetValues<VehicleCategory>())
+                            {
+                                <MudSelectItem T="VehicleCategory?" Value="@category">@category</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudNumericField T="decimal?" Label="Max Daily Rate" @bind-Value="maxDailyRate" 
+                                         Min="0" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudNumericField T="int?" Label="Min Seats" @bind-Value="minSeats" Min="1" Max="15" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" 
+                                   OnClick="ClearFilters" Style="height: 56px;">
+                            Clear Filters
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <!-- Results Count -->
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Showing @filteredVehicles.Count of @vehicles.Count vehicles
+            </MudText>
+
+            <!-- Vehicle Grid -->
+            <MudGrid Spacing="3">
+                @foreach (var vehicle in filteredVehicles)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard Elevation="4" Style="height: 100%; transition: transform 0.2s;" 
+                                 Class="hover-card">
+                            @if (!string.IsNullOrEmpty(vehicle.ImageUrl))
+                            {
+                                <MudCardMedia Image="@vehicle.ImageUrl" Height="200" />
+                            }
+                            else
+                            {
+                                <div style="height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Large" Style="color: white; font-size: 4rem;" />
+                                </div>
+                            }
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                        <MudText Typo="Typo.h5"><strong>@vehicle.Brand @vehicle.Model</strong></MudText>
+                                        @if (vehicle.Status == VehicleStatus.Available)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">
+                                                Available
+                                            </MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                                                Unavailable
+                                            </MudChip>
+                                        }
+                                    </MudStack>
+                                    
+                                    <MudChip T="string" Size="Size.Small" Color="GetCategoryColor(vehicle.Category)" Icon="@Icons.Material.Filled.Category">
+                                        @vehicle.Category
+                                    </MudChip>
+                                    
+                                    <MudDivider />
+                                    
+                                    <MudStack Spacing="1">
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                            <MudText Typo="Typo.body2">
+                                                <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" /> Year
+                                            </MudText>
+                                            <MudText Typo="Typo.body2"><strong>@vehicle.Year</strong></MudText>
+                                        </MudStack>
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                            <MudText Typo="Typo.body2">
+                                                <MudIcon Icon="@Icons.Material.Filled.LocalGasStation" Size="Size.Small" /> Fuel
+                                            </MudText>
+                                            <MudText Typo="Typo.body2"><strong>@vehicle.FuelType</strong></MudText>
+                                        </MudStack>
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                            <MudText Typo="Typo.body2">
+                                                <MudIcon Icon="@Icons.Material.Filled.AirlineSeatReclineNormal" Size="Size.Small" /> Seats
+                                            </MudText>
+                                            <MudText Typo="Typo.body2"><strong>@vehicle.SeatingCapacity</strong></MudText>
+                                        </MudStack>
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                            <MudText Typo="Typo.body2">
+                                                <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small" /> Mileage
+                                            </MudText>
+                                            <MudText Typo="Typo.body2"><strong>@(vehicle.Mileage.ToString("N0")) km</strong></MudText>
+                                        </MudStack>
+                                    </MudStack>
+                                    
+                                    <MudDivider />
+                                    
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Daily Rate</MudText>
+                                            <MudText Typo="Typo.h4" Color="Color.Primary"><strong>$@(vehicle.DailyRate.ToString("N2"))</strong></MudText>
+                                        </MudStack>
+                                        @if (vehicle.Status == VehicleStatus.Available)
+                                        {
+                                            <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+                                                       StartIcon="@Icons.Material.Filled.EventAvailable"
+                                                       OnClick="@(() => RentVehicle(vehicle))">
+                                                Rent Now
+                                            </MudButton>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Variant="Variant.Outlined" Color="Color.Default" Disabled="true">
+                                                Not Available
+                                            </MudButton>
+                                        }
+                                    </MudStack>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            @if (!filteredVehicles.Any())
+            {
+                <MudPaper Elevation="2" Class="pa-8 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" Style="font-size: 4rem;" />
+                    <MudText Typo="Typo.h5" Color="Color.Secondary" Class="mt-4">No vehicles found</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Try adjusting your filters or check back later</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-4" OnClick="ClearFilters">
+                        Clear Filters
+                    </MudButton>
+                </MudPaper>
+            }
+        }
+    </MudStack>
+</MudContainer>
+
+<style>
+    .hover-card {
+        cursor: pointer;
+    }
+    .hover-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important;
+    }
+</style>
+
+@code {
+    private List<Vehicle> vehicles = new();
+    private List<Vehicle> filteredVehicles = new();
+    private bool isLoading = true;
+    
+    // Filters
+    private VehicleCategory? selectedCategory;
+    private decimal? maxDailyRate;
+    private int? minSeats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVehicles();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        ApplyFilters();
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task LoadVehicles()
+    {
+        isLoading = true;
+        try
+        {
+            vehicles = await ApiService.GetVehiclesAsync();
+            // Only show available vehicles to customers
+            vehicles = vehicles.Where(v => v.Status == VehicleStatus.Available).ToList();
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading vehicles: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        var filtered = vehicles.AsEnumerable();
+
+        if (selectedCategory.HasValue)
+        {
+            filtered = filtered.Where(v => v.Category == selectedCategory.Value);
+        }
+
+        if (maxDailyRate.HasValue && maxDailyRate.Value > 0)
+        {
+            filtered = filtered.Where(v => v.DailyRate <= maxDailyRate.Value);
+        }
+
+        if (minSeats.HasValue && minSeats.Value > 0)
+        {
+            filtered = filtered.Where(v => v.SeatingCapacity >= minSeats.Value);
+        }
+
+        filteredVehicles = filtered.ToList();
+    }
+
+    private void ClearFilters()
+    {
+        selectedCategory = null;
+        maxDailyRate = null;
+        minSeats = null;
+        ApplyFilters();
+    }
+
+    private void RentVehicle(Vehicle vehicle)
+    {
+        // Check if user is authenticated
+        // If not, redirect to login
+        // If yes, navigate to rental creation with vehicle pre-selected
+        NavigationManager.NavigateTo($"/rentals/create?vehicleId={vehicle.Id}");
+    }
+
+    private Color GetCategoryColor(VehicleCategory category)
+    {
+        return category switch
+        {
+            VehicleCategory.Economy => Color.Info,
+            VehicleCategory.Compact => Color.Primary,
+            VehicleCategory.SUV => Color.Success,
+            VehicleCategory.Luxury => Color.Warning,
+            VehicleCategory.Sports => Color.Error,
+            VehicleCategory.Van => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+}

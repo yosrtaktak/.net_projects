@@ -1,0 +1,144 @@
+@page "/login"
+@layout EmptyLayout
+@using Frontend.Models
+@using Frontend.Services
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Login - Car Rental</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Style="height: 100vh; display: flex; align-items: center; justify-content: center;">
+    <MudPaper Elevation="8" Class="pa-8" Style="border-radius: 16px; max-width: 450px; width: 100%;">
+        <MudStack Spacing="4">
+            <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Large" Color="Color.Primary" Style="font-size: 4rem;" />
+                <MudText Typo="Typo.h4" Align="Align.Center"><strong>Car Rental System</strong></MudText>
+                <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">
+                    Sign in to your account
+                </MudText>
+            </MudStack>
+
+            <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+                <MudStack Spacing="3">
+                    <MudTextField Label="Username" 
+                                  @bind-Value="loginRequest.Username" 
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Person"
+                                  Required="true"
+                                  For="@(() => loginRequest.Username)" />
+
+                    <MudTextField Label="Password" 
+                                  @bind-Value="loginRequest.Password" 
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Lock"
+                                  Required="true"
+                                  For="@(() => loginRequest.Password)" />
+
+                    <MudButton ButtonType="ButtonType.Submit" 
+                               Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               FullWidth="true" 
+                               Size="Size.Large"
+                               Disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                            <span>Logging in...</span>
+                        }
+                        else
+                        {
+                            <span>Sign In</span>
+                        }
+                    </MudButton>
+                </MudStack>
+            </EditForm>
+
+            <MudDivider />
+
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary"><strong>Quick Login</strong></MudText>
+                <MudButton Variant="Variant.Outlined" 
+                           Color="Color.Primary" 
+                           FullWidth="true" 
+                           StartIcon="@Icons.Material.Filled.AdminPanelSettings"
+                           OnClick='() => QuickLogin("admin", "Admin@123")'>
+                    Admin Portal
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" 
+                           Color="Color.Info" 
+                           FullWidth="true" 
+                           StartIcon="@Icons.Material.Filled.Work"
+                           OnClick='() => QuickLogin("employee", "Employee@123")'>
+                    Employee Portal
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" 
+                           Color="Color.Success" 
+                           FullWidth="true" 
+                           StartIcon="@Icons.Material.Filled.Person"
+                           OnClick='() => QuickLogin("customer", "Customer@123")'>
+                    Customer Portal
+                </MudButton>
+            </MudStack>
+
+            <MudDivider />
+
+            <MudText Typo="Typo.body2" Align="Align.Center">
+                Don't have an account? <MudLink Href="/register" Color="Color.Primary"><strong>Register here</strong></MudLink>
+            </MudText>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private LoginRequest loginRequest = new();
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+
+        try
+        {
+            var result = await AuthService.LoginAsync(loginRequest);
+
+            if (result != null)
+            {
+                Snackbar.Add($"Welcome back, {result.Username}!", Severity.Success);
+                
+                // Redirect based on role
+                if (result.Role == "Admin" || result.Role == "Employee")
+                {
+                    Navigation.NavigateTo("/admin", true);
+                }
+                else
+                {
+                    Navigation.NavigateTo("/", true);
+                }
+            }
+            else
+            {
+                Snackbar.Add("Invalid username or password. Please try again.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"An error occurred: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task QuickLogin(string username, string password)
+    {
+        loginRequest.Username = username;
+        loginRequest.Password = password;
+        await HandleLogin();
+    }
+}

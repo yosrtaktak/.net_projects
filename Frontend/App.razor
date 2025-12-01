@@ -1,0 +1,68 @@
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@GetLayoutType(routeData)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(CustomerLayout)">
+            <MudContainer Class="mt-8">
+                <MudPaper Class="pa-8" Elevation="2">
+                    <MudText Typo="Typo.h4" Color="Color.Error" GutterBottom="true">
+                        <MudIcon Icon="@Icons.Material.Filled.Error" Class="mr-2" /> Page Not Found
+                    </MudText>
+                    <MudText Typo="Typo.body1">Sorry, there's nothing at this address.</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/" Class="mt-4">
+                        Go to Home
+                    </MudButton>
+                </MudPaper>
+            </MudContainer>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+@code {
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    private Type GetLayoutType(RouteData routeData)
+    {
+        // Get the current path from NavigationManager
+        var uri = new Uri(Navigation.Uri);
+        var path = uri.AbsolutePath.ToLower();
+        
+        // Pages that use EmptyLayout (no navigation) - Auth pages
+        if (path == "/login" || path == "/register")
+        {
+            return typeof(Frontend.Layout.EmptyLayout);
+        }
+
+        // Admin/Employee pages use AdminLayout
+        // These are management and administrative features
+        var adminPaths = new[] 
+        { 
+            "/admin", 
+            "/customers", 
+            "/maintenances", 
+            "/damages", 
+            "/vehicles/manage",
+            "/vehicles/add",
+            "/vehicles/edit",
+            "/rentals/manage",
+            "/reports"
+        };
+        
+        if (adminPaths.Any(p => path.StartsWith(p)))
+        {
+            return typeof(Frontend.Layout.AdminLayout);
+        }
+
+        // Default to CustomerLayout for all other pages
+        // Customer pages: home, browse vehicles, my rentals, etc.
+        return typeof(Frontend.Layout.CustomerLayout);
+    }
+}

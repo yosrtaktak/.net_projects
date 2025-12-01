@@ -1,0 +1,101 @@
+@using Frontend.Services
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    @if (isInitialized)
+    {
+        @if (isAuthenticated)
+        {
+            <MudMenu Icon="@Icons.Material.Filled.Person" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <MudMenuItem>
+                    <MudText Typo="Typo.body2"><strong>@username</strong></MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@userRole</MudText>
+                </MudMenuItem>
+                <MudDivider />
+                <MudMenuItem OnClick="HandleLogout" Icon="@Icons.Material.Filled.Logout">Logout</MudMenuItem>
+            </MudMenu>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/login" StartIcon="@Icons.Material.Filled.Login">
+                Login
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="/register" StartIcon="@Icons.Material.Filled.PersonAdd">
+                Register
+            </MudButton>
+        }
+    }
+</MudStack>
+
+@code {
+    private bool isInitialized = false;
+    private bool isAuthenticated = false;
+    private bool isAdmin = false;
+    private bool isEmployee = false;
+    private string? username;
+    private string? userRole;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        await LoadUserState();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadUserState();
+            StateHasChanged();
+        }
+    }
+
+    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        await LoadUserState();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadUserState()
+    {
+        try
+        {
+            isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            username = await AuthService.GetUsernameAsync();
+            userRole = await AuthService.GetRoleAsync();
+            isAdmin = userRole == "Admin";
+            isEmployee = userRole == "Employee";
+            isInitialized = true;
+        }
+        catch (Exception)
+        {
+            isAuthenticated = false;
+            isAdmin = false;
+            isEmployee = false;
+            username = null;
+            userRole = null;
+            isInitialized = true;
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        try
+        {
+            await AuthService.LogoutAsync();
+            await LoadUserState();
+            Navigation.NavigateTo("/", true);
+        }
+        catch (Exception)
+        {
+            Navigation.NavigateTo("/", true);
+        }
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

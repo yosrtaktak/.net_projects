@@ -1,0 +1,146 @@
+@inherits LayoutComponentBase
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<MudLayout>
+    <MudDrawer @bind-Open="@_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+        <MudDrawerHeader>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h6">Car Rental</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@userRole Portal</MudText>
+                </MudStack>
+            </MudStack>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+            
+            @if (isAdmin)
+            {
+                <!-- Admin-only navigation -->
+                <MudNavGroup Title="Fleet Management" Icon="@Icons.Material.Filled.DirectionsCar" Expanded="true">
+                    <MudNavLink Href="/vehicles/manage" Icon="@Icons.Material.Filled.Settings">Manage Vehicles</MudNavLink>
+                    <MudNavLink Href="/maintenances" Icon="@Icons.Material.Filled.Build">Maintenance</MudNavLink>
+                    <MudNavLink Href="/damages" Icon="@Icons.Material.Filled.Warning">Damages</MudNavLink>
+                </MudNavGroup>
+                
+                <MudNavGroup Title="Business Management" Icon="@Icons.Material.Filled.Business" Expanded="true">
+                    <MudNavLink Href="/rentals/manage" Icon="@Icons.Material.Filled.EventNote">All Rentals</MudNavLink>
+                    <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People">Customers</MudNavLink>
+                    <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.Assessment">Reports</MudNavLink>
+                </MudNavGroup>
+            }
+            else
+            {
+                <!-- Employee navigation -->
+                <MudNavLink Href="/vehicles/manage" Icon="@Icons.Material.Filled.DirectionsCar">Manage Vehicles</MudNavLink>
+                <MudNavLink Href="/rentals/manage" Icon="@Icons.Material.Filled.EventNote">Manage Rentals</MudNavLink>
+                <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People">Customers</MudNavLink>
+                <MudNavLink Href="/maintenances" Icon="@Icons.Material.Filled.Build">Maintenance</MudNavLink>
+                <MudNavLink Href="/damages" Icon="@Icons.Material.Filled.Warning">Damages</MudNavLink>
+            }
+        </MudNavMenu>
+        
+        <MudSpacer />
+        
+        <MudDivider />
+        <MudStack Class="pa-4" Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Color="Color.Primary" Size="Size.Small">
+                    @GetInitials()
+                </MudAvatar>
+                <MudStack Spacing="0" Style="flex: 1;">
+                    <MudText Typo="Typo.body2"><strong>@username</strong></MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@userRole</MudText>
+                </MudStack>
+            </MudStack>
+            <MudButton Variant="Variant.Outlined" 
+                       Color="Color.Error" 
+                       FullWidth="true" 
+                       StartIcon="@Icons.Material.Filled.Logout"
+                       OnClick="HandleLogout">
+                Logout
+            </MudButton>
+        </MudStack>
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="py-4" Style="min-height: calc(100vh - 150px);">
+            @Body
+        </MudContainer>
+        
+        <!-- Admin Footer -->
+        <MudPaper Elevation="0" Square="true" Class="mt-auto" Style="background-color: var(--mud-palette-surface); border-top: 1px solid var(--mud-palette-divider);">
+            <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="py-4">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        &copy; @DateTime.Now.Year Car Rental System - @userRole Portal
+                    </MudText>
+                    <MudStack Row="true" Spacing="4">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Version 1.0
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Built with .NET 9
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+            </MudContainer>
+        </MudPaper>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private string? username;
+    private string? userRole;
+    private bool isAdmin = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserState();
+    }
+
+    private async Task LoadUserState()
+    {
+        try
+        {
+            var authenticated = await AuthService.IsAuthenticatedAsync();
+            if (!authenticated)
+            {
+                Navigation.NavigateTo("/login", true);
+                return;
+            }
+
+            username = await AuthService.GetUsernameAsync();
+            userRole = await AuthService.GetRoleAsync();
+            isAdmin = userRole == "Admin";
+            
+            // Ensure only Admin/Employee can access this layout
+            if (userRole != "Admin" && userRole != "Employee")
+            {
+                Navigation.NavigateTo("/", true);
+            }
+        }
+        catch (Exception)
+        {
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    private string GetInitials()
+    {
+        if (string.IsNullOrEmpty(username)) return "?";
+        var parts = username.Split(' ');
+        if (parts.Length >= 2)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return username.Substring(0, Math.Min(2, username.Length)).ToUpper();
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login", true);
+    }
+}

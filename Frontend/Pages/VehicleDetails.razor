@@ -1,0 +1,215 @@
+@page "/vehicles/{id:int}"
+@inject IApiService ApiService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@using Frontend.Models
+
+<PageTitle>@(vehicle != null ? $"{vehicle.Brand} {vehicle.Model}" : "Vehicle Details")</PageTitle>
+
+<div class="container mt-4">
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Loading vehicle details...</p>
+        </div>
+    }
+    else if (vehicle == null)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>Vehicle not found.
+        </div>
+        <button class="btn btn-primary" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i> Back to Vehicles
+        </button>
+    }
+    else
+    {
+        <div class="row mb-3">
+            <div class="col-12">
+                <button class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="bi bi-arrow-left"></i> Back to Vehicles
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                @if (!string.IsNullOrEmpty(vehicle.ImageUrl))
+                {
+                    <img src="@vehicle.ImageUrl" class="img-fluid rounded shadow" alt="@vehicle.Brand @vehicle.Model">
+                }
+                else
+                {
+                    <div class="bg-light rounded shadow d-flex align-items-center justify-content-center" style="height: 400px;">
+                        <i class="bi bi-car-front text-secondary" style="font-size: 8rem;"></i>
+                    </div>
+                }
+            </div>
+
+            <div class="col-lg-6">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h1 class="display-5 fw-bold">@vehicle.Brand @vehicle.Model</h1>
+                        <p class="text-muted lead">@vehicle.Year</p>
+                    </div>
+                    <span class="badge @GetStatusBadgeClass(vehicle.Status) fs-6">
+                        @vehicle.Status
+                    </span>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h2 class="text-primary mb-0">$@(vehicle.DailyRate.ToString("0.00"))<span class="fs-6 text-muted">/day</span></h2>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">
+                            <i class="bi bi-info-circle text-primary"></i> Specifications
+                        </h5>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-tag text-muted me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Category</small>
+                                        <strong>@vehicle.Category</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-fuel-pump text-muted me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Fuel Type</small>
+                                        <strong>@vehicle.FuelType</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-people text-muted me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Seating</small>
+                                        <strong>@vehicle.SeatingCapacity seats</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-speedometer text-muted me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Mileage</small>
+                                        <strong>@(vehicle.Mileage.ToString("N0")) km</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-card-text text-muted me-2"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Registration</small>
+                                        <strong>@vehicle.RegistrationNumber</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (isAuthenticated && vehicle.Status == VehicleStatus.Available)
+                {
+                    <div class="d-grid">
+                        <button class="btn btn-primary btn-lg" @onclick="BookVehicle">
+                            <i class="bi bi-calendar-check"></i> Book This Vehicle
+                        </button>
+                    </div>
+                }
+                else if (!isAuthenticated)
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Please <a href="/login" class="alert-link">login</a> to book this vehicle.
+                    </div>
+                }
+                else if (vehicle.Status == VehicleStatus.Reserved)
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-clock-history me-2"></i>
+                        This vehicle is currently reserved. It will be available soon.
+                    </div>
+                }
+                else if (vehicle.Status == VehicleStatus.Rented)
+                {
+                    <div class="alert alert-warning">
+                        <i class="bi bi-car-front-fill me-2"></i>
+                        This vehicle is currently rented out.
+                    </div>
+                }
+                else if (vehicle.Status == VehicleStatus.Maintenance)
+                {
+                    <div class="alert alert-secondary">
+                        <i class="bi bi-tools me-2"></i>
+                        This vehicle is under maintenance.
+                    </div>
+                }
+                else if (vehicle.Status == VehicleStatus.Retired)
+                {
+                    <div class="alert alert-danger">
+                        <i class="bi bi-x-circle me-2"></i>
+                        This vehicle is no longer in service.
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Vehicle? vehicle;
+    private bool isLoading = true;
+    private bool isAuthenticated = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        await LoadVehicle();
+    }
+
+    private async Task LoadVehicle()
+    {
+        isLoading = true;
+        vehicle = await ApiService.GetVehicleAsync(Id);
+        isLoading = false;
+    }
+
+    private void BookVehicle()
+    {
+        NavigationManager.NavigateTo($"/rentals/create?vehicleId={Id}");
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/vehicles");
+    }
+
+    private string GetStatusBadgeClass(VehicleStatus status)
+    {
+        return status switch
+        {
+            VehicleStatus.Available => "bg-success",
+            VehicleStatus.Reserved => "bg-info",
+            VehicleStatus.Rented => "bg-warning text-dark",
+            VehicleStatus.Maintenance => "bg-secondary",
+            VehicleStatus.Retired => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}

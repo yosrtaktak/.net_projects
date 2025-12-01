@@ -1,0 +1,253 @@
+@page "/rentals/{rentalId:int}/report-damage"
+@layout CustomerLayout
+@inject IApiService ApiService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject HttpClient HttpClient
+@using Frontend.Models
+@using Frontend.Services
+
+<PageTitle>Report Vehicle Damage - Car Rental System</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+    @if (isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (rental == null)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+            <strong>Error</strong> - Rental not found or you don't have permission to report damage.
+        </MudAlert>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/my-rentals" Class="mt-4">
+            Back to My Rentals
+        </MudButton>
+    }
+    else
+    {
+        <MudPaper Elevation="2" Class="pa-6">
+            <MudStack Spacing="4">
+                <!-- Header -->
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.h4">
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Class="mr-2" />
+                        Report Vehicle Damage
+                    </MudText>
+                    <MudText Typo="Typo.body1" Color="Color.Secondary">
+                        Please report any damage you noticed during or at the end of your rental period.
+                    </MudText>
+                </MudStack>
+
+                <MudDivider />
+
+                <!-- Rental Information -->
+                <MudPaper Elevation="0" Class="pa-4" Style="background-color: var(--mud-palette-background-grey);">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Rental Information</MudText>
+                        <MudStack Row="true" Spacing="4">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Vehicle</MudText>
+                                <MudText Typo="Typo.body1"><strong>@rental.Vehicle?.Brand @rental.Vehicle?.Model</strong></MudText>
+                            </MudStack>
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Registration</MudText>
+                                <MudText Typo="Typo.body1"><strong>@rental.Vehicle?.RegistrationNumber</strong></MudText>
+                            </MudStack>
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Rental Period</MudText>
+                                <MudText Typo="Typo.body1"><strong>@rental.StartDate.ToString("MMM dd") - @rental.EndDate.ToString("MMM dd, yyyy")</strong></MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+
+                <!-- Damage Report Form -->
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h6">Damage Details</MudText>
+
+                    <MudSelect T="int" 
+                               Label="Damage Severity" 
+                               @bind-Value="damageModel.Severity" 
+                               Required="true" 
+                               Variant="Variant.Outlined"
+                               HelperText="How severe is the damage?">
+                        <MudSelectItem T="int" Value="@((int)DamageSeverity.Minor)">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info">Minor</MudChip>
+                                <MudText Typo="Typo.body2">Small scratches, minor dents</MudText>
+                            </MudStack>
+                        </MudSelectItem>
+                        <MudSelectItem T="int" Value="@((int)DamageSeverity.Moderate)">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning">Moderate</MudChip>
+                                <MudText Typo="Typo.body2">Larger dents, paint damage</MudText>
+                            </MudStack>
+                        </MudSelectItem>
+                        <MudSelectItem T="int" Value="@((int)DamageSeverity.Major)">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Error">Major</MudChip>
+                                <MudText Typo="Typo.body2">Significant body damage</MudText>
+                            </MudStack>
+                        </MudSelectItem>
+                        <MudSelectItem T="int" Value="@((int)DamageSeverity.Critical)">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Dark">Critical</MudChip>
+                                <MudText Typo="Typo.body2">Structural or mechanical damage</MudText>
+                            </MudStack>
+                        </MudSelectItem>
+                    </MudSelect>
+
+                    <MudTextField T="string" 
+                                  Label="Damage Description" 
+                                  @bind-Value="damageModel.Description" 
+                                  Lines="5" 
+                                  Required="true" 
+                                  Variant="Variant.Outlined"
+                                  HelperText="Please provide detailed description of the damage, including location on the vehicle"
+                                  Placeholder="Example: 10cm scratch on the rear passenger door, approximately at door handle height..." />
+
+                    <MudNumericField T="decimal?" 
+                                     Label="Estimated Repair Cost (Optional)" 
+                                     @bind-Value="damageModel.RepairCost" 
+                                     Min="0" 
+                                     Adornment="Adornment.Start" 
+                                     AdornmentIcon="@Icons.Material.Filled.AttachMoney" 
+                                     Variant="Variant.Outlined"
+                                     HelperText="If you have an estimate, you can enter it here. Otherwise, our team will assess." />
+
+                    <MudTextField T="string" 
+                                  Label="Image URL (Optional)" 
+                                  @bind-Value="damageModel.ImageUrl" 
+                                  Variant="Variant.Outlined"
+                                  HelperText="If you have uploaded photos to a cloud service, paste the link here"
+                                  Placeholder="https://..." />
+
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+                        <strong>Note:</strong> Submitting this report will notify our team. We will assess the damage and may contact you for additional information. Any repair costs may be charged according to your rental agreement.
+                    </MudAlert>
+                </MudStack>
+
+                <!-- Action Buttons -->
+                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="Color.Default" 
+                               OnClick="Cancel"
+                               Disabled="@isProcessing">
+                        Cancel
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Error" 
+                               StartIcon="@Icons.Material.Filled.Send"
+                               OnClick="SubmitDamageReport" 
+                               Disabled="@isProcessing">
+                        @if (isProcessing)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        Submit Damage Report
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int RentalId { get; set; }
+
+    private Rental? rental;
+    private CreateVehicleDamageDto damageModel = new();
+    private bool isLoading = true;
+    private bool isProcessing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+
+        try
+        {
+            // Get the rental
+            var rentals = await ApiService.GetRentalsAsync();
+            rental = rentals.FirstOrDefault(r => r.Id == RentalId);
+
+            if (rental == null)
+            {
+                isLoading = false;
+                return;
+            }
+
+            // Initialize the damage model
+            damageModel = new CreateVehicleDamageDto
+            {
+                VehicleId = rental.VehicleId,
+                RentalId = RentalId,
+                ReportedDate = DateTime.Now,
+                Severity = (int)DamageSeverity.Minor,
+                ReportedBy = await AuthService.GetUsernameAsync() ?? "Customer"
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading rental: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SubmitDamageReport()
+    {
+        if (string.IsNullOrWhiteSpace(damageModel.Description))
+        {
+            Snackbar.Add("Please provide a damage description", Severity.Warning);
+            return;
+        }
+
+        isProcessing = true;
+
+        try
+        {
+            // If no repair cost provided, set a default based on severity
+            if (!damageModel.RepairCost.HasValue || damageModel.RepairCost == 0)
+            {
+                damageModel.RepairCost = damageModel.Severity switch
+                {
+                    0 => 100m,  // Minor
+                    1 => 300m,  // Moderate
+                    2 => 800m,  // Major
+                    3 => 2000m, // Critical
+                    _ => 100m
+                };
+            }
+
+            var result = await ApiServiceExtensions.CreateVehicleDamageAsync(ApiService, HttpClient, damageModel);
+
+            if (result != null)
+            {
+                Snackbar.Add("Damage report submitted successfully. Our team will review it shortly.", Severity.Success);
+                await Task.Delay(1500);
+                NavigationManager.NavigateTo("/my-rentals");
+            }
+            else
+            {
+                Snackbar.Add("Failed to submit damage report. Please try again.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error submitting report: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/my-rentals");
+    }
+}

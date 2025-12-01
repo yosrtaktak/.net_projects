@@ -1,0 +1,361 @@
+@page "/vehicles/add"
+@page "/vehicles/edit/{Id:int}"
+@inject IApiService ApiService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@using Frontend.Models
+
+<PageTitle>@(Id.HasValue ? "Edit" : "Add") Vehicle - Car Rental System</PageTitle>
+
+<div class="container mt-4">
+    @if (!canManageVehicles)
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle me-2"></i>Access denied. Admin or Employee privileges required.
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="display-6 fw-bold">
+                    <i class="bi bi-@(Id.HasValue ? "pencil-square" : "plus-circle") text-primary"></i> 
+                    @(Id.HasValue ? "Edit" : "Add New") Vehicle
+                </h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/">Home</a></li>
+                        <li class="breadcrumb-item"><a href="/vehicles">Vehicles</a></li>
+                        <li class="breadcrumb-item active">@(Id.HasValue ? "Edit" : "Add")</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+
+        @if (isLoading && Id.HasValue)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <EditForm Model="@vehicleModel" OnValidSubmit="HandleSubmit">
+                                <DataAnnotationsValidator />
+
+                                @if (!string.IsNullOrEmpty(errorMessage))
+                                {
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+                                        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+                                    </div>
+                                }
+
+                                @if (successMessage)
+                                {
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        <i class="bi bi-check-circle me-2"></i>Vehicle saved successfully!
+                                    </div>
+                                }
+
+                                <!-- Basic Information -->
+                                <div class="mb-4">
+                                    <h5 class="border-bottom pb-2 mb-3">Basic Information</h5>
+                                    
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="brand" class="form-label">Brand <span class="text-danger">*</span></label>
+                                            <InputText id="brand" @bind-Value="vehicleModel.Brand" class="form-control" placeholder="e.g., Toyota, BMW" />
+                                            <ValidationMessage For="@(() => vehicleModel.Brand)" />
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="model" class="form-label">Model <span class="text-danger">*</span></label>
+                                            <InputText id="model" @bind-Value="vehicleModel.Model" class="form-control" placeholder="e.g., Camry, X5" />
+                                            <ValidationMessage For="@(() => vehicleModel.Model)" />
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="registration" class="form-label">Registration Number <span class="text-danger">*</span></label>
+                                            <InputText id="registration" @bind-Value="vehicleModel.RegistrationNumber" class="form-control" placeholder="e.g., ABC-1234" />
+                                            <ValidationMessage For="@(() => vehicleModel.RegistrationNumber)" />
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="year" class="form-label">Year <span class="text-danger">*</span></label>
+                                            <InputNumber id="year" @bind-Value="vehicleModel.Year" class="form-control" min="1900" max="2099" />
+                                            <ValidationMessage For="@(() => vehicleModel.Year)" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Category & Pricing -->
+                                <div class="mb-4">
+                                    <h5 class="border-bottom pb-2 mb-3">Category & Pricing</h5>
+                                    
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
+                                            <InputSelect id="category" @bind-Value="vehicleModel.Category" class="form-select">
+                                                @foreach (var category in Enum.GetValues<VehicleCategory>())
+                                                {
+                                                    <option value="@category">@category</option>
+                                                }
+                                            </InputSelect>
+                                            <ValidationMessage For="@(() => vehicleModel.Category)" />
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="dailyRate" class="form-label">Daily Rate ($) <span class="text-danger">*</span></label>
+                                            <InputNumber id="dailyRate" @bind-Value="vehicleModel.DailyRate" class="form-control" min="0" step="0.01" />
+                                            <ValidationMessage For="@(() => vehicleModel.DailyRate)" />
+                                        </div>
+
+                                        @if (Id.HasValue)
+                                        {
+                                            <div class="col-md-12">
+                                                <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+                                                <InputSelect id="status" @bind-Value="vehicleModel.Status" class="form-select">
+                                                    @foreach (var status in Enum.GetValues<VehicleStatus>())
+                                                    {
+                                                        <option value="@status">@status</option>
+                                                    }
+                                                </InputSelect>
+                                                <ValidationMessage For="@(() => vehicleModel.Status)" />
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Specifications -->
+                                <div class="mb-4">
+                                    <h5 class="border-bottom pb-2 mb-3">Specifications</h5>
+                                    
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label for="fuelType" class="form-label">Fuel Type</label>
+                                            <InputText id="fuelType" @bind-Value="vehicleModel.FuelType" class="form-control" placeholder="e.g., Gasoline, Diesel" />
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label for="seatingCapacity" class="form-label">Seating Capacity <span class="text-danger">*</span></label>
+                                            <InputNumber id="seatingCapacity" @bind-Value="vehicleModel.SeatingCapacity" class="form-control" min="1" max="50" />
+                                            <ValidationMessage For="@(() => vehicleModel.SeatingCapacity)" />
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label for="mileage" class="form-label">Mileage (km) <span class="text-danger">*</span></label>
+                                            <InputNumber id="mileage" @bind-Value="vehicleModel.Mileage" class="form-control" min="0" />
+                                            <ValidationMessage For="@(() => vehicleModel.Mileage)" />
+                                        </div>
+
+                                        <div class="col-md-12">
+                                            <label for="imageUrl" class="form-label">Image URL</label>
+                                            <InputText id="imageUrl" @bind-Value="vehicleModel.ImageUrl" class="form-control" placeholder="https://..." />
+                                            <small class="form-text text-muted">Enter a valid image URL for the vehicle photo</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Form Actions -->
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">
+                                        <i class="bi bi-x-circle me-2"></i>Cancel
+                                    </button>
+                                    
+                                    <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                                        @if (isSaving)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            <span>Saving...</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-check-circle me-2"></i>
+                                            <span>@(Id.HasValue ? "Update" : "Create") Vehicle</span>
+                                        }
+                                    </button>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private VehicleFormModel vehicleModel = new();
+    private bool canManageVehicles = false;
+    private bool isLoading = false;
+    private bool isSaving = false;
+    private bool successMessage = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var role = await AuthService.GetRoleAsync();
+        canManageVehicles = role == "Admin" || role == "Employee";
+
+        if (!canManageVehicles)
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        if (Id.HasValue)
+        {
+            await LoadVehicle();
+        }
+        else
+        {
+            // Set defaults for new vehicle
+            vehicleModel.Year = DateTime.Now.Year;
+            vehicleModel.Category = VehicleCategory.Economy;
+            vehicleModel.SeatingCapacity = 5;
+        }
+    }
+
+    private async Task LoadVehicle()
+    {
+        if (!Id.HasValue) return;
+        
+        isLoading = true;
+        var vehicle = await ApiService.GetVehicleAsync(Id.Value);
+        
+        if (vehicle != null)
+        {
+            vehicleModel = new VehicleFormModel
+            {
+                Brand = vehicle.Brand,
+                Model = vehicle.Model,
+                RegistrationNumber = vehicle.RegistrationNumber,
+                Year = vehicle.Year,
+                Category = vehicle.Category,
+                DailyRate = vehicle.DailyRate,
+                Status = vehicle.Status,
+                ImageUrl = vehicle.ImageUrl,
+                Mileage = vehicle.Mileage,
+                FuelType = vehicle.FuelType,
+                SeatingCapacity = vehicle.SeatingCapacity
+            };
+        }
+        else
+        {
+            errorMessage = "Vehicle not found.";
+        }
+        
+        isLoading = false;
+    }
+
+    private async Task HandleSubmit()
+    {
+        isSaving = true;
+        errorMessage = null;
+        successMessage = false;
+
+        try
+        {
+            if (Id.HasValue)
+            {
+                // Update existing vehicle
+                var vehicle = new Vehicle
+                {
+                    Id = Id.Value,
+                    Brand = vehicleModel.Brand,
+                    Model = vehicleModel.Model,
+                    RegistrationNumber = vehicleModel.RegistrationNumber,
+                    Year = vehicleModel.Year,
+                    Category = vehicleModel.Category,
+                    DailyRate = vehicleModel.DailyRate,
+                    Status = vehicleModel.Status,
+                    ImageUrl = vehicleModel.ImageUrl,
+                    Mileage = vehicleModel.Mileage,
+                    FuelType = vehicleModel.FuelType,
+                    SeatingCapacity = vehicleModel.SeatingCapacity
+                };
+
+                var success = await ApiService.UpdateVehicleAsync(Id.Value, vehicle);
+                
+                if (success)
+                {
+                    successMessage = true;
+                    await Task.Delay(1500);
+                    NavigationManager.NavigateTo("/vehicles/manage");
+                }
+                else
+                {
+                    errorMessage = "Failed to update vehicle. Please try again.";
+                }
+            }
+            else
+            {
+                // Create new vehicle
+                var request = new CreateVehicleRequest
+                {
+                    Brand = vehicleModel.Brand,
+                    Model = vehicleModel.Model,
+                    RegistrationNumber = vehicleModel.RegistrationNumber,
+                    Year = vehicleModel.Year,
+                    Category = vehicleModel.Category,
+                    DailyRate = vehicleModel.DailyRate,
+                    ImageUrl = vehicleModel.ImageUrl,
+                    Mileage = vehicleModel.Mileage,
+                    FuelType = vehicleModel.FuelType,
+                    SeatingCapacity = vehicleModel.SeatingCapacity
+                };
+
+                var result = await ApiService.CreateVehicleAsync(request);
+                
+                if (result != null)
+                {
+                    successMessage = true;
+                    await Task.Delay(1500);
+                    NavigationManager.NavigateTo("/vehicles/manage");
+                }
+                else
+                {
+                    errorMessage = "Failed to create vehicle. Please check all fields and try again.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/vehicles/manage");
+    }
+
+    public class VehicleFormModel
+    {
+        public string Brand { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public string RegistrationNumber { get; set; } = string.Empty;
+        public int Year { get; set; }
+        public VehicleCategory Category { get; set; }
+        public decimal DailyRate { get; set; }
+        public VehicleStatus Status { get; set; } = VehicleStatus.Available;
+        public string? ImageUrl { get; set; }
+        public int Mileage { get; set; }
+        public string? FuelType { get; set; }
+        public int SeatingCapacity { get; set; }
+    }
+}

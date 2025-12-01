@@ -1,0 +1,439 @@
+@page "/vehicles/{id:int}/history"
+@inject IApiService ApiService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@using Frontend.Models
+
+<PageTitle>Vehicle History - @(history?.Vehicle.Brand) @(history?.Vehicle.Model)</PageTitle>
+
+<div class="container mt-4">
+    @if (!isAdmin)
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle me-2"></i>Access denied. Admin privileges required.
+        </div>
+    }
+    else if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Loading vehicle history...</p>
+        </div>
+    }
+    else if (history == null)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>Vehicle history not found.
+        </div>
+        <button class="btn btn-primary" @onclick="GoBack">
+            <i class="bi bi-arrow-left"></i> Back to Vehicles
+        </button>
+    }
+    else
+    {
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="display-6 fw-bold">
+                            <i class="bi bi-clock-history text-primary"></i> Vehicle History
+                        </h1>
+                        <p class="text-muted lead">@history.Vehicle.Brand @history.Vehicle.Model - @history.Vehicle.RegistrationNumber
+                        </p>
+                    </div>
+                    <button class="btn btn-outline-secondary" @onclick="GoBack">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-calendar-check fs-1 text-primary mb-2"></i>
+                        <h3 class="mb-0">@history.Rentals.Count</h3>
+                        <p class="text-muted mb-0">Total Rentals</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-tools fs-1 text-warning mb-2"></i>
+                        <h3 class="mb-0">@history.MaintenanceRecords.Count</h3>
+                        <p class="text-muted mb-0">Maintenances</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-exclamation-triangle fs-1 text-danger mb-2"></i>
+                        <h3 class="mb-0">@history.DamageRecords.Count</h3>
+                        <p class="text-muted mb-0">Damage Reports</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-speedometer fs-1 text-info mb-2"></i>
+                        <h3 class="mb-0">@history.MileageEvolution.TotalMileageDriven.ToString("N0")</h3>
+                        <p class="text-muted mb-0">Total KM Driven</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link @(activeTab == "rentals" ? "active" : "")" @onclick='() => activeTab = "rentals"'>
+                    <i class="bi bi-calendar-check me-2"></i>Rental History
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(activeTab == "maintenance" ? "active" : "")" @onclick='() => activeTab = "maintenance"'>
+                    <i class="bi bi-tools me-2"></i>Maintenance History
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(activeTab == "damage" ? "active" : "")" @onclick='() => activeTab = "damage"'>
+                    <i class="bi bi-exclamation-triangle me-2"></i>Damage History
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(activeTab == "mileage" ? "active" : "")" @onclick='() => activeTab = "mileage"'>
+                    <i class="bi bi-graph-up me-2"></i>Mileage Evolution
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            @if (activeTab == "rentals")
+            {
+                <div class="row">
+                    <div class="col-12">
+                        @if (!history.Rentals.Any())
+                        {
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>No rental history available.
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var rental in history.Rentals.OrderByDescending(r => r.StartDate))
+                            {
+                                <div class="card mb-3 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h5 class="card-title mb-0">
+                                                        Rental #@rental.Id
+                                                    </h5>
+                                                    <span class="badge @GetRentalStatusBadge(rental.Status)">@rental.Status</span>
+                                                </div>
+                                                <p class="text-muted mb-2">
+                                                    <i class="bi bi-person"></i> @rental.Customer?.FirstName @rental.Customer?.LastName
+                                                </p>
+                                                <div class="row g-2">
+                                                    <div class="col-md-6">
+                                                        <small class="text-muted d-block">Start Date</small>
+                                                        <strong>@rental.StartDate.ToString("MMM dd, yyyy")</strong>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <small class="text-muted d-block">End Date</small>
+                                                        <strong>@rental.EndDate.ToString("MMM dd, yyyy")</strong>
+                                                    </div>
+                                                    @if (rental.StartMileage.HasValue && rental.EndMileage.HasValue)
+                                                    {
+                                                        <div class="col-md-6">
+                                                            <small class="text-muted d-block">Distance</small>
+                                                            <strong>@((rental.EndMileage.Value - rental.StartMileage.Value).ToString("N0")) km</strong>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 text-end">
+                                                <h4 class="text-primary mb-2">$@(rental.TotalCost.ToString("N2"))</h4>
+                                                @if (!string.IsNullOrEmpty(rental.Notes))
+                                                {
+                                                    <small class="text-muted">
+                                                        <i class="bi bi-sticky"></i> @rental.Notes
+                                                    </small>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+            else if (activeTab == "maintenance")
+            {
+                <div class="row">
+                    <div class="col-12">
+                        @if (!history.MaintenanceRecords.Any())
+                        {
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>No maintenance history available.
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var maintenance in history.MaintenanceRecords.OrderByDescending(m => m.ScheduledDate))
+                            {
+                                <div class="card mb-3 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <h5 class="card-title mb-1">@maintenance.Type Maintenance</h5>
+                                                <span class="badge @GetMaintenanceStatusBadge(maintenance.Status)">@maintenance.Status</span>
+                                            </div>
+                                            <h5 class="text-primary mb-0">$@(maintenance.Cost.ToString("N2"))</h5>
+                                        </div>
+                                        <p class="mb-2">@maintenance.Description</p>
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <small class="text-muted d-block">Scheduled</small>
+                                                <strong>@maintenance.ScheduledDate.ToString("MMM dd, yyyy")</strong>
+                                            </div>
+                                            @if (maintenance.CompletedDate.HasValue)
+                                            {
+                                                <div class="col-md-6">
+                                                    <small class="text-muted d-block">Completed</small>
+                                                    <strong>@maintenance.CompletedDate.Value.ToString("MMM dd, yyyy")</strong>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+            else if (activeTab == "damage")
+            {
+                <div class="row">
+                    <div class="col-12">
+                        @if (!history.DamageRecords.Any())
+                        {
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle me-2"></i>No damage reports. Vehicle is in good condition!
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var damage in history.DamageRecords.OrderByDescending(d => d.ReportedDate))
+                            {
+                                <div class="card mb-3 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <h5 class="card-title mb-1">@damage.Severity Damage</h5>
+                                                <span class="badge @GetDamageStatusBadge(damage.Status)">@damage.Status</span>
+                                                <span class="badge @GetDamageSeverityBadge(damage.Severity) ms-1">@damage.Severity</span>
+                                            </div>
+                                            <h5 class="text-danger mb-0">$@(damage.RepairCost.ToString("N2"))</h5>
+                                        </div>
+                                        <p class="mb-2">@damage.Description</p>
+                                        <div class="row g-2">
+                                            <div class="col-md-4">
+                                                <small class="text-muted d-block">Reported</small>
+                                                <strong>@damage.ReportedDate.ToString("MMM dd, yyyy")</strong>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(damage.ReportedBy))
+                                            {
+                                                <div class="col-md-4">
+                                                    <small class="text-muted d-block">Reported By</small>
+                                                    <strong>@damage.ReportedBy</strong>
+                                                </div>
+                                            }
+                                            @if (damage.RepairedDate.HasValue)
+                                            {
+                                                <div class="col-md-4">
+                                                    <small class="text-muted d-block">Repaired</small>
+                                                    <strong>@damage.RepairedDate.Value.ToString("MMM dd, yyyy")</strong>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+            else if (activeTab == "mileage")
+            {
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title mb-4">Mileage Statistics</h5>
+                                <div class="row g-4">
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <h3 class="text-primary mb-1">@(history.MileageEvolution.CurrentMileage.ToString("N0")) km</h3>
+                                            <small class="text-muted">Current Mileage</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <h3 class="text-info mb-1">@(history.MileageEvolution.TotalMileageDriven.ToString("N0")) km</h3>
+                                            <small class="text-muted">Total Driven</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <h3 class="text-success mb-1">@(history.MileageEvolution.AverageMileagePerRental.ToString("N0")) km</h3>
+                                            <small class="text-muted">Avg Per Rental</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (history.MileageEvolution.DataPoints.Any())
+                        {
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-4">Mileage Timeline</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Event</th>
+                                                    <th>Mileage</th>
+                                                    <th>Change</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @{
+                                                    int? previousMileage = null;
+                                                    @foreach (var point in history.MileageEvolution.DataPoints.OrderBy(p => p.Date))
+                                                    {
+                                                        var change = previousMileage.HasValue ? point.Mileage - previousMileage.Value : 0;
+                                                        <tr>
+                                                            <td>@point.Date.ToString("MMM dd, yyyy")</td>
+                                                            <td>
+                                                                <span class="badge bg-secondary">@point.EventType</span>
+                                                            </td>
+                                                            <td><strong>@(point.Mileage.ToString("N0")) km</strong></td>
+                                                            <td>
+                                                                @if (change > 0)
+                                                                {
+                                                                    <span class="text-success">+@(change.ToString("N0")) km</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                        previousMileage = point.Mileage;
+                                                    }
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private VehicleHistoryResponse? history;
+    private bool isLoading = true;
+    private bool isAdmin = false;
+    private string activeTab = "rentals";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var role = await AuthService.GetRoleAsync();
+        isAdmin = role == "Admin";
+
+        if (!isAdmin)
+        {
+            return;
+        }
+
+        await LoadHistory();
+    }
+
+    private async Task LoadHistory()
+    {
+        isLoading = true;
+        history = await ApiService.GetVehicleHistoryAsync(Id);
+        isLoading = false;
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/vehicles/manage");
+    }
+
+    private string GetRentalStatusBadge(RentalStatus status)
+    {
+        return status switch
+        {
+            RentalStatus.Reserved => "bg-info",
+            RentalStatus.Active => "bg-success",
+            RentalStatus.Completed => "bg-secondary",
+            RentalStatus.Cancelled => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetMaintenanceStatusBadge(MaintenanceStatus status)
+    {
+        return status switch
+        {
+            MaintenanceStatus.Scheduled => "bg-info",
+            MaintenanceStatus.InProgress => "bg-warning",
+            MaintenanceStatus.Completed => "bg-success",
+            MaintenanceStatus.Cancelled => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetDamageStatusBadge(DamageStatus status)
+    {
+        return status switch
+        {
+            DamageStatus.Reported => "bg-warning",
+            DamageStatus.UnderRepair => "bg-info",
+            DamageStatus.Repaired => "bg-success",
+            DamageStatus.Unresolved => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetDamageSeverityBadge(DamageSeverity severity)
+    {
+        return severity switch
+        {
+            DamageSeverity.Minor => "bg-info",
+            DamageSeverity.Moderate => "bg-warning",
+            DamageSeverity.Major => "bg-danger",
+            DamageSeverity.Critical => "bg-dark",
+            _ => "bg-secondary"
+        };
+    }
+}

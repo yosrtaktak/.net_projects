@@ -1,0 +1,248 @@
+@page "/rentals/create"
+@inject IApiService ApiService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@using Frontend.Models
+
+<PageTitle>Create Rental - Car Rental System</PageTitle>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h2 class="card-title mb-4">
+                        <i class="bi bi-calendar-check text-primary"></i> Create Rental
+                    </h2>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible">
+                            <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+                            <button type="button" class="btn-close" @onclick="ClearError"></button>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(successMessage))
+                    {
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>@successMessage
+                        </div>
+                    }
+
+                    <EditForm Model="rentalRequest" OnValidSubmit="HandleCreateRental">
+                        <div class="mb-3">
+                            <label class="form-label">Customer</label>
+                            <InputSelect class="form-select" @bind-Value="rentalRequest.CustomerId">
+                                <option value="0">-- Select Customer --</option>
+                                @foreach (var customer in customers)
+                                {
+                                    <option value="@customer.Id">@customer.FirstName @customer.LastName (@customer.Email)
+                                    </option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Vehicle</label>
+                            <InputSelect class="form-select" @bind-Value="rentalRequest.VehicleId"
+                                @bind-Value:after="OnVehicleChanged">
+                                <option value="0">-- Select Vehicle --</option>
+                                @foreach (var vehicle in vehicles)
+                                {
+                                    <option value="@vehicle.Id">@vehicle.Brand @vehicle.Model - $@vehicle.DailyRate/day
+                                    </option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Start Date</label>
+                                <InputDate class="form-control" @bind-Value="rentalRequest.StartDate"
+                                    @bind-Value:after="CalculatePrice" min="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">End Date</label>
+                                <InputDate class="form-control" @bind-Value="rentalRequest.EndDate"
+                                    @bind-Value:after="CalculatePrice" min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Pricing Strategy</label>
+                            <InputSelect class="form-select" @bind-Value="rentalRequest.PricingStrategy"
+                                @bind-Value:after="CalculatePrice">
+                                <option value="standard">Standard</option>
+                                <option value="weekend">Weekend Special</option>
+                                <option value="seasonal">Seasonal</option>
+                                <option value="loyalty">Loyalty Discount</option>
+                            </InputSelect>
+                            <small class="text-muted">Different pricing strategies offer various discounts</small>
+                        </div>
+
+                        @if (priceCalculation != null && rentalRequest.VehicleId > 0 && rentalRequest.CustomerId > 0)
+                        {
+                            <div class="card bg-light mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title text-primary">Price Breakdown</h5>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <p class="mb-1"><strong>Strategy:</strong> @priceCalculation.StrategyUsed</p>
+                                            <p class="mb-1"><strong>Duration:</strong> @priceCalculation.NumberOfDays days
+                                            </p>
+                                            <p class="mb-1"><strong>Daily Rate:</strong> $@priceCalculation.DailyRate</p>
+                                            @if (priceCalculation.Discount.HasValue && priceCalculation.Discount > 0)
+                                            {
+                                                <p class="mb-1 text-success"><strong>Discount:</strong>
+                                                    @priceCalculation.Discount.Value%</p>
+                                            }
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <h3 class="text-primary mb-0">Total: $@priceCalculation.TotalPrice</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg"
+                                disabled="@(isLoading || rentalRequest.VehicleId == 0 || rentalRequest.CustomerId == 0)">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <span>Creating Rental...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-check-lg me-2"></i>
+                                    <span>Create Rental</span>
+                                }
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="GoToVehicles">
+                                <i class="bi bi-x-lg me-2"></i>Cancel
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateRentalRequest rentalRequest = new()
+    {
+        StartDate = DateTime.Now.AddDays(1),
+        EndDate = DateTime.Now.AddDays(3),
+        PricingStrategy = "standard"
+    };
+
+    private List<Customer> customers = new();
+    private List<Vehicle> vehicles = new();
+    private PriceCalculationResponse? priceCalculation;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private bool isLoading = false;
+
+    [SupplyParameterFromQuery(Name = "vehicleId")]
+    public int? VehicleId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+
+        if (VehicleId.HasValue)
+        {
+            rentalRequest.VehicleId = VehicleId.Value;
+            await OnVehicleChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        customers = await ApiService.GetCustomersAsync();
+        vehicles = await ApiService.GetVehiclesAsync();
+        vehicles = vehicles.Where(v => v.Status == VehicleStatus.Available).ToList();
+    }
+
+    private async Task OnVehicleChanged()
+    {
+        if (rentalRequest.VehicleId > 0 && rentalRequest.CustomerId > 0)
+        {
+            await CalculatePrice();
+        }
+    }
+
+    private async Task CalculatePrice()
+    {
+        if (rentalRequest.VehicleId > 0 && rentalRequest.CustomerId > 0 &&
+            rentalRequest.StartDate < rentalRequest.EndDate)
+        {
+            var request = new CalculatePriceRequest
+            {
+                VehicleId = rentalRequest.VehicleId,
+                CustomerId = rentalRequest.CustomerId,
+                StartDate = rentalRequest.StartDate,
+                EndDate = rentalRequest.EndDate,
+                PricingStrategy = rentalRequest.PricingStrategy
+            };
+
+            priceCalculation = await ApiService.CalculatePriceAsync(request);
+        }
+    }
+
+    private async Task HandleCreateRental()
+    {
+        if (rentalRequest.VehicleId == 0 || rentalRequest.CustomerId == 0)
+        {
+            errorMessage = "Please select both a customer and a vehicle.";
+            return;
+        }
+
+        if (rentalRequest.StartDate >= rentalRequest.EndDate)
+        {
+            errorMessage = "End date must be after start date.";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            var result = await ApiService.CreateRentalAsync(rentalRequest);
+
+            if (result != null)
+            {
+                successMessage = $"Rental created successfully! Total cost: ${result.TotalCost}";
+                await Task.Delay(2000);
+                NavigationManager.NavigateTo("/rentals");
+            }
+            else
+            {
+                errorMessage = "Failed to create rental. The vehicle might not be available for the selected dates.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ClearError()
+    {
+        errorMessage = string.Empty;
+    }
+
+    private void GoToVehicles()
+    {
+        NavigationManager.NavigateTo("/vehicles");
+    }
+}

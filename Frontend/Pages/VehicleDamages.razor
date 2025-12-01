@@ -1,0 +1,585 @@
+@page "/damages"
+@layout AdminLayout
+@inject IApiService ApiService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject HttpClient HttpClient
+@using Frontend.Models
+@using Frontend.Services
+
+<PageTitle>Vehicle Damages - Car Rental System</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
+    @if (isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (!canViewDamages)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-4">
+            <strong>Access Denied</strong> - Admin or Employee privileges required.
+        </MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <!-- Header Section -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4"><MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Class="mr-2" /><strong>Vehicle Damages</strong></MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Track and manage vehicle damage reports and repairs</MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Add" OnClick="ShowCreateModal">
+                    Report Damage
+                </MudButton>
+            </MudStack>
+
+            <!-- Statistics Cards -->
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Damages</MudText>
+                                <MudText Typo="Typo.h4"><strong>@damages.Count</strong></MudText>
+                            </MudStack>
+                            <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Color="Color.Default" Size="Size.Large" />
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Under Repair</MudText>
+                                <MudText Typo="Typo.h4" Color="Color.Warning"><strong>@damages.Count(d => d.Status == DamageStatus.UnderRepair)</strong></MudText>
+                            </MudStack>
+                            <MudIcon Icon="@Icons.Material.Filled.Build" Color="Color.Warning" Size="Size.Large" />
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Repaired</MudText>
+                                <MudText Typo="Typo.h4" Color="Color.Success"><strong>@damages.Count(d => d.Status == DamageStatus.Repaired)</strong></MudText>
+                            </MudStack>
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Cost</MudText>
+                                <MudText Typo="Typo.h4" Color="Color.Error"><strong>$@damages.Sum(d => d.RepairCost).ToString("N0")</strong></MudText>
+                            </MudStack>
+                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Error" Size="Size.Large" />
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Filters -->
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="DamageStatus?" Label="Status" @bind-Value="filterStatusValue" Clearable="true" Variant="Variant.Outlined">
+                            @foreach (var status in Enum.GetValues<DamageStatus>())
+                            {
+                                <MudSelectItem T="DamageStatus?" Value="@status">@status</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudSelect T="DamageSeverity?" Label="Severity" @bind-Value="filterSeverityValue" Clearable="true" Variant="Variant.Outlined">
+                            @foreach (var severity in Enum.GetValues<DamageSeverity>())
+                            {
+                                <MudSelectItem T="DamageSeverity?" Value="@severity">@severity</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSelect T="int?" Label="Vehicle" @bind-Value="filterVehicleIdValue" Clearable="true" Variant="Variant.Outlined">
+                            @foreach (var vehicle in vehicles)
+                            {
+                                <MudSelectItem T="int?" Value="@vehicle.Id">@vehicle.Brand @vehicle.Model</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="2">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" OnClick="ClearFilters" Style="height: 56px;">
+                            Clear
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <!-- Damages Table -->
+            <MudTable Items="@filteredDamages" Elevation="2" Dense="false" Hover="true" Striped="true">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Damage Reports</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Vehicle</MudTh>
+                    <MudTh>Severity</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Description</MudTh>
+                    <MudTh>Reported Date</MudTh>
+                    <MudTh>Repair Cost</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Vehicle">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Small" />
+                            <MudText>@(context.Vehicle?.Brand ?? "") @(context.Vehicle?.Model ?? "")</MudText>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="Severity">
+                        <MudChip T="string" Size="Size.Small" Color="GetSeverityColor(context.Severity)">@context.Severity</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Status">
+                        <MudChip T="string" Size="Size.Small" Color="GetStatusColor(context.Status)" Variant="Variant.Filled">@context.Status</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Description">
+                        <MudText Typo="Typo.body2">@context.Description.Substring(0, Math.Min(50, context.Description.Length))@(context.Description.Length > 50 ? "..." : "")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Reported Date">@context.ReportedDate.ToString("MMM dd, yyyy")</MudTd>
+                    <MudTd DataLabel="Repair Cost">
+                        <MudText Typo="Typo.body2" Color="Color.Error"><strong>$@(context.RepairCost.ToString("N2"))</strong></MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudStack Row="true" Spacing="1">
+                            @if (context.Status == DamageStatus.Reported)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Info" Size="Size.Small" OnClick="@(() => StartRepair(context.Id))" Title="Start Repair" />
+                            }
+                            @if (context.Status == DamageStatus.UnderRepair)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small" OnClick="@(() => ShowCompleteModal(context))" Title="Complete Repair" />
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" Size="Size.Small" OnClick="@(() => ViewDetails(context))" Title="View Details" />
+                            @if (isAdmin)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteDamage(context.Id))" Title="Delete" />
+                            }
+                        </MudStack>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[]{10, 25, 50}" />
+                </PagerContent>
+            </MudTable>
+        </MudStack>
+    }
+</MudContainer>
+
+<!-- Create Damage Modal -->
+<MudDialog @bind-Visible="showCreateModal" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
+            Report Vehicle Damage
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudSelect T="int" Label="Vehicle" @bind-Value="createModel.VehicleId" Required="true" Variant="Variant.Outlined">
+                @foreach (var vehicle in vehicles)
+                {
+                    <MudSelectItem T="int" Value="@vehicle.Id">@vehicle.Brand @vehicle.Model (@vehicle.RegistrationNumber)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="int" Label="Severity" @bind-Value="createModel.Severity" Required="true" Variant="Variant.Outlined">
+                @foreach (var severity in Enum.GetValues<DamageSeverity>())
+                {
+                    <MudSelectItem T="int" Value="@((int)severity)">@severity</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker Label="Reported Date" @bind-Date="reportedDate" Required="true" Variant="Variant.Outlined" />
+            <MudTextField T="string" Label="Description" @bind-Value="createModel.Description" Lines="3" Required="true" Variant="Variant.Outlined" />
+            <MudNumericField T="decimal" Label="Estimated Repair Cost" @bind-Value="createModel.RepairCost" Min="0" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Variant="Variant.Outlined" />
+            <MudTextField T="string" Label="Reported By (Optional)" @bind-Value="createModel.ReportedBy" Variant="Variant.Outlined" />
+            <MudNumericField T="int?" Label="Related Rental ID (Optional)" @bind-Value="createModel.RentalId" Variant="Variant.Outlined" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseCreateModal">Cancel</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="CreateDamage" Disabled="@isProcessing">
+            @if (isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Report Damage
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Complete Repair Modal -->
+<MudDialog @bind-Visible="showCompleteModal" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="mr-2" />
+            Complete Repair
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudDatePicker Label="Repair Completion Date" @bind-Date="repairedDate" Required="true" Variant="Variant.Outlined" />
+            <MudNumericField T="decimal?" Label="Actual Repair Cost" @bind-Value="completeModel.ActualRepairCost" Min="0" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Variant="Variant.Outlined" />
+            <MudTextField T="string" Label="Repair Notes" @bind-Value="completeModel.RepairNotes" Lines="3" Variant="Variant.Outlined" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseCompleteModal">Cancel</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="CompleteRepair" Disabled="@isProcessing">
+            @if (isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Complete Repair
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- View Details Modal -->
+<MudDialog @bind-Visible="showDetailsModal" Options="detailsDialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+            Damage Report Details
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (selectedDamage != null)
+        {
+            <MudStack Spacing="3">
+                <MudPaper Elevation="0" Class="pa-4" Style="background-color: var(--mud-palette-background-grey);">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.h6">@(selectedDamage.Vehicle?.Brand ?? "") @(selectedDamage.Vehicle?.Model ?? "")</MudText>
+                        <MudChip T="string" Color="GetSeverityColor(selectedDamage.Severity)">@selectedDamage.Severity</MudChip>
+                    </MudStack>
+                </MudPaper>
+                
+                <MudDivider />
+                
+                <MudStack Spacing="2">
+                    <MudStack Row="true" Spacing="2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Status:</MudText>
+                        <MudChip T="string" Size="Size.Small" Color="GetStatusColor(selectedDamage.Status)">@selectedDamage.Status</MudChip>
+                    </MudStack>
+                    
+                    <MudStack Row="true" Spacing="2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Reported Date:</MudText>
+                        <MudText Typo="Typo.body2">@selectedDamage.ReportedDate.ToString("MMMM dd, yyyy")</MudText>
+                    </MudStack>
+                    
+                    @if (selectedDamage.RepairedDate.HasValue)
+                    {
+                        <MudStack Row="true" Spacing="2">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Repaired Date:</MudText>
+                            <MudText Typo="Typo.body2">@selectedDamage.RepairedDate.Value.ToString("MMMM dd, yyyy")</MudText>
+                        </MudStack>
+                    }
+                    
+                    <MudStack Row="true" Spacing="2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Repair Cost:</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Error"><strong>$@(selectedDamage.RepairCost.ToString("N2"))</strong></MudText>
+                    </MudStack>
+                    
+                    @if (!string.IsNullOrEmpty(selectedDamage.ReportedBy))
+                    {
+                        <MudStack Row="true" Spacing="2">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Reported By:</MudText>
+                            <MudText Typo="Typo.body2">@selectedDamage.ReportedBy</MudText>
+                        </MudStack>
+                    }
+                    
+                    @if (selectedDamage.RentalId.HasValue)
+                    {
+                        <MudStack Row="true" Spacing="2">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Related Rental:</MudText>
+                            <MudText Typo="Typo.body2">#@selectedDamage.RentalId</MudText>
+                        </MudStack>
+                    }
+                </MudStack>
+                
+                <MudDivider />
+                
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Description:</MudText>
+                    <MudText Typo="Typo.body2">@selectedDamage.Description</MudText>
+                </MudStack>
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseDetailsModal" Variant="Variant.Filled" Color="Color.Primary">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<VehicleDamageDto> damages = new();
+    private List<VehicleDamageDto> filteredDamages = new();
+    private List<Vehicle> vehicles = new();
+    private VehicleDamageDto? selectedDamage = null;
+    
+    private bool canViewDamages = false;
+    private bool isAdmin = false;
+    private bool isLoading = true;
+    private bool isProcessing = false;
+    private bool showCreateModal = false;
+    private bool showCompleteModal = false;
+    private bool showDetailsModal = false;
+    
+    private string searchString = "";
+    private DamageStatus? filterStatusValue;
+    private DamageSeverity? filterSeverityValue;
+    private int? filterVehicleIdValue;
+
+    private CreateVehicleDamageDto createModel = new();
+    private RepairDamageDto completeModel = new();
+    private DateTime? reportedDate = DateTime.Today;
+    private DateTime? repairedDate = DateTime.Today;
+
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+    private DialogOptions detailsDialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        
+        var role = await AuthService.GetRoleAsync();
+        canViewDamages = role == "Admin" || role == "Employee";
+        isAdmin = role == "Admin";
+
+        if (!canViewDamages)
+        {
+            isLoading = false;
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        await LoadData();
+    }
+
+    protected override void OnParametersSet()
+    {
+        ApplyFilters();
+        base.OnParametersSet();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            vehicles = await ApiService.GetVehiclesAsync();
+            damages = await ApiServiceExtensions.GetVehicleDamagesAsync(ApiService, HttpClient);
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading data: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        var filtered = damages.AsEnumerable();
+
+        if (filterStatusValue.HasValue)
+            filtered = filtered.Where(d => d.Status == filterStatusValue.Value);
+
+        if (filterSeverityValue.HasValue)
+            filtered = filtered.Where(d => d.Severity == filterSeverityValue.Value);
+
+        if (filterVehicleIdValue.HasValue)
+            filtered = filtered.Where(d => d.VehicleId == filterVehicleIdValue.Value);
+
+        if (!string.IsNullOrWhiteSpace(searchString))
+        {
+            var search = searchString.ToLower();
+            filtered = filtered.Where(d =>
+                (d.Vehicle?.Brand?.ToLower().Contains(search) ?? false) ||
+                (d.Vehicle?.Model?.ToLower().Contains(search) ?? false) ||
+                d.Description.ToLower().Contains(search));
+        }
+
+        filteredDamages = filtered.ToList();
+    }
+
+    private void ClearFilters()
+    {
+        filterStatusValue = null;
+        filterSeverityValue = null;
+        filterVehicleIdValue = null;
+        searchString = "";
+        ApplyFilters();
+    }
+
+    private void ShowCreateModal()
+    {
+        createModel = new CreateVehicleDamageDto { Severity = (int)DamageSeverity.Minor, RepairCost = 0 };
+        reportedDate = DateTime.Today;
+        showCreateModal = true;
+    }
+
+    private void CloseCreateModal() => showCreateModal = false;
+
+    private async Task CreateDamage()
+    {
+        if (createModel.VehicleId == 0 || reportedDate == null) return;
+
+        isProcessing = true;
+        try
+        {
+            createModel.ReportedDate = reportedDate.Value;
+            var result = await ApiServiceExtensions.CreateVehicleDamageAsync(ApiService, HttpClient, createModel);
+            
+            if (result != null)
+            {
+                Snackbar.Add("Damage reported successfully!", Severity.Success);
+                showCreateModal = false;
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to report damage", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task StartRepair(int id)
+    {
+        try
+        {
+            var success = await ApiServiceExtensions.StartRepairAsync(ApiService, HttpClient, id);
+            if (success)
+            {
+                Snackbar.Add("Repair started successfully!", Severity.Success);
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to start repair", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void ShowCompleteModal(VehicleDamageDto damage)
+    {
+        selectedDamage = damage;
+        completeModel = new RepairDamageDto();
+        repairedDate = DateTime.Today;
+        showCompleteModal = true;
+    }
+
+    private void CloseCompleteModal() => showCompleteModal = false;
+
+    private async Task CompleteRepair()
+    {
+        if (selectedDamage == null || repairedDate == null) return;
+
+        isProcessing = true;
+        try
+        {
+            completeModel.RepairedDate = repairedDate.Value;
+            var success = await ApiServiceExtensions.CompleteRepairAsync(ApiService, HttpClient, selectedDamage.Id, completeModel);
+            
+            if (success)
+            {
+                Snackbar.Add("Repair completed successfully!", Severity.Success);
+                showCompleteModal = false;
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to complete repair", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private void ViewDetails(VehicleDamageDto damage)
+    {
+        selectedDamage = damage;
+        showDetailsModal = true;
+    }
+
+    private void CloseDetailsModal() => showDetailsModal = false;
+
+    private async Task DeleteDamage(int id)
+    {
+        try
+        {
+            var success = await ApiServiceExtensions.DeleteVehicleDamageAsync(ApiService, HttpClient, id);
+            if (success)
+            {
+                Snackbar.Add("Damage report deleted successfully!", Severity.Success);
+                await LoadData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete damage report", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private Color GetStatusColor(DamageStatus status)
+    {
+        return status switch
+        {
+            DamageStatus.Reported => Color.Warning,
+            DamageStatus.UnderRepair => Color.Info,
+            DamageStatus.Repaired => Color.Success,
+            DamageStatus.Unresolved => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetSeverityColor(DamageSeverity severity)
+    {
+        return severity switch
+        {
+            DamageSeverity.Minor => Color.Info,
+            DamageSeverity.Moderate => Color.Warning,
+            DamageSeverity.Major => Color.Error,
+            DamageSeverity.Critical => Color.Dark,
+            _ => Color.Default
+        };
+    }
+}

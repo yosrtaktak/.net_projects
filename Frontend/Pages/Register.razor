@@ -1,0 +1,119 @@
+@page "/register"
+@layout EmptyLayout
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@using Frontend.Models
+
+<PageTitle>Register - Car Rental System</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Style="height: 100vh; display: flex; align-items: center; justify-content: center;">
+    <MudPaper Elevation="8" Class="pa-8" Style="border-radius: 16px; max-width: 450px; width: 100%;">
+        <MudStack Spacing="4">
+            <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Large" Color="Color.Primary" Style="font-size: 4rem;" />
+                <MudText Typo="Typo.h4" Align="Align.Center"><strong>Create Account</strong></MudText>
+                <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">
+                    Join our car rental service today
+                </MudText>
+            </MudStack>
+
+            <EditForm Model="registerRequest" OnValidSubmit="HandleRegister">
+                <DataAnnotationsValidator />
+                <MudStack Spacing="3">
+                    <MudTextField Label="Username" 
+                                  @bind-Value="registerRequest.Username" 
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Person"
+                                  Required="true"
+                                  HelperText="Choose a unique username"
+                                  For="@(() => registerRequest.Username)" />
+
+                    <MudTextField Label="Email" 
+                                  @bind-Value="registerRequest.Email" 
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Email"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Email"
+                                  Required="true"
+                                  HelperText="We'll never share your email"
+                                  For="@(() => registerRequest.Email)" />
+
+                    <MudTextField Label="Password" 
+                                  @bind-Value="registerRequest.Password" 
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Lock"
+                                  Required="true"
+                                  HelperText="Minimum 6 characters"
+                                  For="@(() => registerRequest.Password)" />
+
+                    <MudButton ButtonType="ButtonType.Submit" 
+                               Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               FullWidth="true" 
+                               Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.PersonAdd"
+                               Disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                            <span>Creating account...</span>
+                        }
+                        else
+                        {
+                            <span>Create Account</span>
+                        }
+                    </MudButton>
+                </MudStack>
+            </EditForm>
+
+            <MudDivider />
+
+            <MudAlert Severity="Severity.Info" Dense="true" Class="my-2">
+                <MudText Typo="Typo.body2">
+                    <strong>Note:</strong> New accounts are created with Customer role by default.
+                </MudText>
+            </MudAlert>
+
+            <MudText Typo="Typo.body2" Align="Align.Center">
+                Already have an account? <MudLink Href="/login" Color="Color.Primary"><strong>Sign in here</strong></MudLink>
+            </MudText>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private RegisterRequest registerRequest = new();
+    private bool isLoading = false;
+
+    private async Task HandleRegister()
+    {
+        isLoading = true;
+
+        try
+        {
+            var result = await AuthService.RegisterAsync(registerRequest);
+
+            if (result != null)
+            {
+                Snackbar.Add($"Welcome, {result.Username}! Your account has been created.", Severity.Success);
+                NavigationManager.NavigateTo("/", true);
+            }
+            else
+            {
+                Snackbar.Add("Registration failed. Username or email might already be taken.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"An error occurred: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

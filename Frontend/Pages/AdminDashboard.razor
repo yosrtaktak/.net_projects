@@ -1,0 +1,268 @@
+@page "/admin"
+@layout AdminLayout
+@inject Frontend.Services.IApiService ApiService
+@inject Frontend.Services.IAuthService AuthService
+@inject NavigationManager NavigationManager
+@using Frontend.Models
+
+<PageTitle>Admin Dashboard - Car Rental System</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
+    @if (isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (!isAuthorized)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-4">
+            <strong>Access Denied</strong> - Admin or Employee privileges required.
+        </MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <!-- Header -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4"><strong>Dashboard</strong></MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Welcome back, @username! Here's your system overview.
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Href="/vehicles/add">
+                    Add Vehicle
+                </MudButton>
+            </MudStack>
+
+            @if (isLoading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else
+            {
+                <!-- Statistics Cards -->
+                <MudGrid>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Vehicles</MudText>
+                                        <MudText Typo="Typo.h4"><strong>@vehicles.Count</strong></MudText>
+                                    </MudStack>
+                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" Size="Size.Large" />
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Available</MudText>
+                                        <MudText Typo="Typo.h4" Color="Color.Success"><strong>@vehicles.Count(v => v.Status == VehicleStatus.Available)</strong></MudText>
+                                    </MudStack>
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Active Rentals</MudText>
+                                        <MudText Typo="Typo.h4" Color="Color.Warning"><strong>@rentals.Count(r => r.Status == RentalStatus.Active)</strong></MudText>
+                                    </MudStack>
+                                    <MudIcon Icon="@Icons.Material.Filled.EventNote" Color="Color.Warning" Size="Size.Large" />
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Customers</MudText>
+                                        <MudText Typo="Typo.h4" Color="Color.Info"><strong>@customers.Count</strong></MudText>
+                                    </MudStack>
+                                    <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Info" Size="Size.Large" />
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- Quick Actions -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.h6" GutterBottom="true">
+                        <MudIcon Icon="@Icons.Material.Filled.FlashOn" Class="mr-2" /> Quick Actions
+                    </MudText>
+                    <MudGrid Spacing="2" Class="mt-2">
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Primary" 
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       Href="/vehicles/add">
+                                Add Vehicle
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Primary" 
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.DirectionsCar"
+                                       Href="/vehicles/manage">
+                                Manage Vehicles
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Primary" 
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.People"
+                                       Href="/customers">
+                                View Customers
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Primary" 
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.EventNote"
+                                       Href="/rentals">
+                                View Rentals
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Status Overview -->
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="2" Class="pa-4">
+                            <MudText Typo="Typo.h6" GutterBottom="true">
+                                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="mr-2" /> Vehicle Status
+                            </MudText>
+                            <MudList T="string" Dense="true">
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText>Available</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success">@vehicles.Count(v => v.Status == VehicleStatus.Available)</MudChip>
+                                    </MudStack>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.DriveEta" IconColor="Color.Warning">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText>Rented</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">@vehicles.Count(v => v.Status == VehicleStatus.Rented)</MudChip>
+                                    </MudStack>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Build" IconColor="Color.Secondary">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText>Maintenance</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary">@vehicles.Count(v => v.Status == VehicleStatus.Maintenance)</MudChip>
+                                    </MudStack>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Cancel" IconColor="Color.Error">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText>Retired</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Error">@vehicles.Count(v => v.Status == VehicleStatus.Retired)</MudChip>
+                                    </MudStack>
+                                </MudListItem>
+                            </MudList>
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="2" Class="pa-4">
+                            <MudText Typo="Typo.h6" GutterBottom="true">
+                                <MudIcon Icon="@Icons.Material.Filled.EventNote" Class="mr-2" /> Rental Status
+                            </MudText>
+                            <MudList T="string" Dense="true">
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Schedule" IconColor="Color.Info">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText>Reserved</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@rentals.Count(r => r.Status == RentalStatus.Reserved)</MudChip>
+                                    </MudStack>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.PlayArrow" IconColor="Color.Primary">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText>Active</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">@rentals.Count(r => r.Status == RentalStatus.Active)</MudChip>
+                                    </MudStack>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText>Completed</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success">@rentals.Count(r => r.Status == RentalStatus.Completed)</MudChip>
+                                    </MudStack>
+                                </MudListItem>
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Cancel" IconColor="Color.Error">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText>Cancelled</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Error">@rentals.Count(r => r.Status == RentalStatus.Cancelled)</MudChip>
+                                    </MudStack>
+                                </MudListItem>
+                            </MudList>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            }
+        </MudStack>
+    }
+</MudContainer>
+
+@code {
+    private bool isAuthorized = false;
+    private bool isLoading = true;
+    private string? username;
+    private List<Vehicle> vehicles = new();
+    private List<Customer> customers = new();
+    private List<Rental> rentals = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        
+        var role = await AuthService.GetRoleAsync();
+        username = await AuthService.GetUsernameAsync();
+        isAuthorized = role == "Admin" || role == "Employee";
+
+        if (!isAuthorized)
+        {
+            isLoading = false;
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        isLoading = true;
+        
+        try
+        {
+            vehicles = await ApiService.GetVehiclesAsync();
+            customers = await ApiService.GetCustomersAsync();
+            rentals = await ApiService.GetRentalsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        
+        isLoading = false;
+    }
+}
