@@ -4,7 +4,6 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @using Frontend.Models
-@using Microsoft.AspNetCore.WebUtilities
 
 <PageTitle>Browse Vehicles - Car Rental</PageTitle>
 
@@ -28,14 +27,14 @@
             <MudPaper Elevation="2" Class="pa-4">
                 <MudGrid Spacing="2">
                     <MudItem xs="12" sm="6" md="3">
-                        <MudSelect T="VehicleCategory?" 
+                        <MudSelect T="int?" 
                                    Label="Category" 
-                                   Value="@selectedCategory" 
-                                   ValueChanged="@((VehicleCategory? value) => OnCategoryChanged(value))"
+                                   Value="@selectedCategoryId" 
+                                   ValueChanged="@((int? value) => OnCategoryChanged(value))"
                                    Clearable="true">
-                            @foreach (var category in Enum.GetValues<VehicleCategory>())
+                            @foreach (var category in categories)
                             {
-                                <MudSelectItem T="VehicleCategory?" Value="@category">@category</MudSelectItem>
+                                <MudSelectItem T="int?" Value="@category.Id">@category.Name</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
@@ -105,8 +104,8 @@
                                         }
                                     </MudStack>
                                     
-                                    <MudChip T="string" Size="Size.Small" Color="GetCategoryColor(vehicle.Category)" Icon="@Icons.Material.Filled.Category">
-                                        @vehicle.Category
+                                    <MudChip T="string" Size="Size.Small" Color="GetCategoryColor(vehicle.CategoryName)" Icon="@Icons.Material.Filled.Category">
+                                        @vehicle.CategoryName
                                     </MudChip>
                                     
                                     <MudDivider />
@@ -195,25 +194,40 @@
 @code {
     private List<Vehicle> vehicles = new();
     private List<Vehicle> filteredVehicles = new();
+    private List<CategoryModel> categories = new();
     private bool isLoading = true;
     
     // Filters
-    private VehicleCategory? selectedCategory;
+    private int? selectedCategoryId;
     private decimal? maxDailyRate;
     private int? minSeats;
 
     protected override async Task OnInitializedAsync()
     {
-        // Check for category query parameter from home page
-        var uri = new Uri(NavigationManager.Uri);
-        var queryParams = QueryHelpers.ParseQuery(uri.Query);
+        // Load categories first
+        categories = await ApiService.GetCategoriesAsync(activeOnly: true);
         
-        if (queryParams.TryGetValue("category", out var categoryValue))
+        // Check for category query parameter from home page
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (uri.Query.Length > 0)
         {
-            // Try to parse the category from query string
-            if (Enum.TryParse<VehicleCategory>(categoryValue, true, out var category))
+            var queryString = uri.Query.Substring(1); // Remove the leading '?'
+            var queryParams = queryString.Split('&');
+            foreach (var param in queryParams)
             {
-                selectedCategory = category;
+                var keyValue = param.Split('=');
+                if (keyValue.Length == 2 && keyValue[0] == "category")
+                {
+                    var categoryValue = Uri.UnescapeDataString(keyValue[1]);
+                    // Try to match the category name from query string to category ID
+                    var matchingCategory = categories.FirstOrDefault(c => 
+                        c.Name.Equals(categoryValue, StringComparison.OrdinalIgnoreCase));
+                    if (matchingCategory != null)
+                    {
+                        selectedCategoryId = matchingCategory.Id;
+                    }
+                    break;
+                }
             }
         }
         
@@ -240,9 +254,9 @@
         }
     }
 
-    private void OnCategoryChanged(VehicleCategory? value)
+    private void OnCategoryChanged(int? value)
     {
-        selectedCategory = value;
+        selectedCategoryId = value;
         ApplyFilters();
         StateHasChanged();
     }
@@ -265,9 +279,9 @@
     {
         var filtered = vehicles.AsEnumerable();
 
-        if (selectedCategory.HasValue)
+        if (selectedCategoryId.HasValue)
         {
-            filtered = filtered.Where(v => v.Category == selectedCategory.Value);
+            filtered = filtered.Where(v => v.CategoryId == selectedCategoryId.Value);
         }
 
         if (maxDailyRate.HasValue && maxDailyRate.Value > 0)
@@ -285,7 +299,7 @@
 
     private void ClearFilters()
     {
-        selectedCategory = null;
+        selectedCategoryId = null;
         maxDailyRate = null;
         minSeats = null;
         ApplyFilters();
@@ -301,16 +315,17 @@
         }
     }
 
-    private Color GetCategoryColor(VehicleCategory category)
+    private Color GetCategoryColor(string categoryName)
     {
-        return category switch
+        return categoryName.ToLower() switch
         {
-            VehicleCategory.Economy => Color.Info,
-            VehicleCategory.Compact => Color.Primary,
-            VehicleCategory.SUV => Color.Success,
-            VehicleCategory.Luxury => Color.Warning,
-            VehicleCategory.Sports => Color.Error,
-            VehicleCategory.Van => Color.Secondary,
+            "economy" => Color.Info,
+            "compact" => Color.Primary,
+            "midsize" => Color.Success,
+            "suv" => Color.Success,
+            "luxury" => Color.Warning,
+            "sports" => Color.Error,
+            "van" => Color.Secondary,
             _ => Color.Default
         };
     }

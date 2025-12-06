@@ -121,15 +121,15 @@
                         </MudText>
                         <MudGrid Spacing="3">
                             <MudItem xs="12" sm="6" md="3">
-                                <MudSelect T="VehicleCategory?" 
+                                <MudSelect T="int?" 
                                            Label="Category" 
-                                           @bind-Value="selectedCategory" 
+                                           @bind-Value="selectedCategoryId" 
                                            Variant="Variant.Outlined"
                                            Clearable="true" 
-                                           OnClearButtonClick="@(() => { selectedCategory = null; ApplyFilters(); })">
-                                    @foreach (var category in Enum.GetValues<VehicleCategory>())
+                                           OnClearButtonClick="@(() => { selectedCategoryId = null; ApplyFilters(); })">
+                                    @foreach (var category in categories)
                                     {
-                                        <MudSelectItem T="VehicleCategory?" Value="@category">@category</MudSelectItem>
+                                        <MudSelectItem T="int?" Value="@category.Id">@category.Name</MudSelectItem>
                                     }
                                 </MudSelect>
                             </MudItem>
@@ -197,8 +197,8 @@
                                                     @vehicle.Status
                                                 </MudChip>
                                             </MudStack>
-                                            <MudChip T="string" Size="Size.Small" Color="GetCategoryColor(vehicle.Category)" Variant="Variant.Outlined">
-                                                @vehicle.Category
+                                            <MudChip T="string" Size="Size.Small" Color="GetCategoryColor(vehicle.CategoryName)" Variant="Variant.Outlined">
+                                                @vehicle.CategoryName
                                             </MudChip>
                                             <MudDivider />
                                             <MudStack Spacing="1">
@@ -374,10 +374,11 @@
     private bool isProcessing = false;
     private List<Vehicle> vehicles = new();
     private List<Vehicle> filteredVehicles = new();
+    private List<CategoryModel> categories = new();
     private Vehicle? selectedVehicle;
 
     // Filters
-    private VehicleCategory? selectedCategory;
+    private int? selectedCategoryId;
     private VehicleStatus? selectedStatus;
     private string searchText = "";
 
@@ -408,6 +409,7 @@
         }
 
         await LoadVehicles();
+        await LoadCategories();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -434,13 +436,30 @@
         }
     }
 
+    private async Task LoadCategories()
+    {
+        isLoading = true;
+        try
+        {
+            categories = await ApiService.GetCategoriesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading categories: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
     private void ApplyFilters()
     {
         var filtered = vehicles.AsEnumerable();
 
-        if (selectedCategory.HasValue)
+        if (selectedCategoryId.HasValue)
         {
-            filtered = filtered.Where(v => v.Category == selectedCategory.Value);
+            filtered = filtered.Where(v => v.CategoryId == selectedCategoryId.Value);
         }
 
         if (selectedStatus.HasValue)
@@ -462,7 +481,7 @@
 
     private void ClearFilters()
     {
-        selectedCategory = null;
+        selectedCategoryId = null;
         selectedStatus = null;
         searchText = "";
         ApplyFilters();
@@ -610,16 +629,17 @@
         };
     }
 
-    private Color GetCategoryColor(VehicleCategory category)
+    private Color GetCategoryColor(string categoryName)
     {
-        return category switch
+        return categoryName.ToLower() switch
         {
-            VehicleCategory.Economy => Color.Info,
-            VehicleCategory.Compact => Color.Primary,
-            VehicleCategory.SUV => Color.Success,
-            VehicleCategory.Luxury => Color.Warning,
-            VehicleCategory.Sports => Color.Error,
-            VehicleCategory.Van => Color.Secondary,
+            "economy" => Color.Info,
+            "compact" => Color.Primary,
+            "midsize" => Color.Success,
+            "suv" => Color.Success,
+            "luxury" => Color.Warning,
+            "sports" => Color.Error,
+            "van" => Color.Secondary,
             _ => Color.Default
         };
     }

@@ -167,8 +167,8 @@
 
         try
         {
-            // Get the rental
-            var rentals = await ApiService.GetRentalsAsync();
+            // Get the customer's own rentals (not all rentals which requires admin/employee role)
+            var rentals = await ApiService.GetMyRentalsAsync();
             rental = rentals.FirstOrDefault(r => r.Id == RentalId);
 
             if (rental == null)
@@ -189,6 +189,7 @@
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Error loading rental: {ex.Message}");
             Snackbar.Add($"Error loading rental: {ex.Message}", Severity.Error);
         }
         finally
@@ -209,16 +210,6 @@
 
         try
         {
-            // If no repair cost provided, set a default based on severity
-            decimal repairCost = damageModel.RepairCost ?? damageModel.Severity switch
-            {
-                0 => 100m,  // Minor
-                1 => 300m,  // Moderate
-                2 => 800m,  // Major
-                3 => 2000m, // Critical
-                _ => 100m
-            };
-
             var request = new CreateVehicleDamageRequest
             {
                 VehicleId = rental!.VehicleId,
@@ -226,7 +217,7 @@
                 ReportedDate = DateTime.Now,
                 Description = damageModel.Description,
                 Severity = damageModel.Severity,
-                RepairCost = repairCost,
+                RepairCost = damageModel.RepairCost, // Pass nullable directly - backend will set default if needed
                 ImageUrl = damageModel.ImageUrl,
                 ReportedBy = await AuthService.GetUsernameAsync()
             };
@@ -241,11 +232,17 @@
             }
             else
             {
-                Snackbar.Add("Failed to submit damage report. Please try again.", Severity.Error);
+                Snackbar.Add("Failed to submit damage report. Please check your connection and try again.", Severity.Error);
             }
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Snackbar.Add($"Network error: {httpEx.Message}", Severity.Error);
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Error submitting damage report: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             Snackbar.Add($"Error submitting report: {ex.Message}", Severity.Error);
         }
         finally

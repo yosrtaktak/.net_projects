@@ -35,8 +35,8 @@
                         <div class="col-md-3">
                             <label class="form-label">Category</label>
                             <div class="btn-group w-100" role="group">
-                                <button type="button" class="btn btn-sm @(selectedCategory == null ? "btn-primary" : "btn-outline-primary")" 
-                                        @onclick="() => FilterByCategory(null)">
+                                <button type="button" class="btn btn-sm @(selectedCategoryId == null ? "btn-primary" : "btn-outline-primary")" 
+                                        @onclick="() => FilterByCategoryId(null)">
                                     All
                                 </button>
                             </div>
@@ -60,11 +60,11 @@
                         }
                     </div>
                     <div class="btn-group flex-wrap mt-2" role="group">
-                        @foreach (var category in Enum.GetValues<VehicleCategory>())
+                        @foreach (var category in categories)
                         {
-                            <button type="button" class="btn btn-sm @(selectedCategory == category ? "btn-primary" : "btn-outline-primary")" 
-                                    @onclick="() => FilterByCategory(category)">
-                                @category
+                            <button type="button" class="btn btn-sm @(selectedCategoryId == category.Id ? "btn-primary" : "btn-outline-primary")" 
+                                    @onclick="() => FilterByCategoryId(category.Id)">
+                                @category.Name
                             </button>
                         }
                     </div>
@@ -132,7 +132,7 @@
                             </div>
                             
                             <p class="text-muted small mb-3">
-                                <span class="badge bg-secondary">@vehicle.Category</span>
+                                <span class="badge bg-secondary">@vehicle.CategoryName</span>
                                 <span class="ms-2">@vehicle.Year</span>
                             </p>
 
@@ -347,8 +347,10 @@
 
 @code {
     private List<Vehicle> vehicles = new();
+    private List<Vehicle> allVehicles = new();
+    private List<CategoryModel> categories = new();
     private Vehicle? selectedVehicle = null;
-    private VehicleCategory? selectedCategory = null;
+    private int? selectedCategoryId = null;
     private bool isLoading = true;
     private bool isAdmin = false;
     private bool isEmployee = false;
@@ -370,38 +372,35 @@
         isAdmin = role == "Admin";
         isEmployee = role == "Employee";
         
+        // Load categories first
+        categories = await ApiService.GetCategoriesAsync(activeOnly: true);
+        
         await LoadVehicles();
     }
 
     private async Task LoadVehicles()
     {
         isLoading = true;
-        vehicles = await ApiService.GetVehiclesAsync();
+        allVehicles = await ApiService.GetVehiclesAsync();
+        vehicles = allVehicles;
         ApplyFilters();
         isLoading = false;
     }
 
-    private async Task FilterByCategory(VehicleCategory? category)
+    private void FilterByCategoryId(int? categoryId)
     {
-        selectedCategory = category;
-        isLoading = true;
-
-        if (category.HasValue)
-        {
-            vehicles = await ApiService.GetVehiclesByCategoryAsync(category.Value);
-        }
-        else
-        {
-            vehicles = await ApiService.GetVehiclesAsync();
-        }
-
+        selectedCategoryId = categoryId;
         ApplyFilters();
-        isLoading = false;
     }
 
     private void ApplyFilters()
     {
-        var filteredList = vehicles.AsEnumerable();
+        var filteredList = allVehicles.AsEnumerable();
+
+        if (selectedCategoryId.HasValue)
+        {
+            filteredList = filteredList.Where(v => v.CategoryId == selectedCategoryId.Value);
+        }
 
         if (!string.IsNullOrEmpty(filterStatus) && (isAdmin || isEmployee))
         {

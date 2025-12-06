@@ -121,8 +121,8 @@
                                         }
                                         else
                                         {
-                                            <MudSelect T="VehicleCategory" 
-                                                       @bind-Value="vehicleModel.Category" 
+                                            <MudSelect T="int" 
+                                                       @bind-Value="vehicleModel.CategoryId" 
                                                        Label="Category" 
                                                        Variant="Variant.Outlined"
                                                        Required="true"
@@ -132,32 +132,28 @@
                                                        Adornment="Adornment.Start">
                                                 @foreach (var dbCategory in dbCategories.Where(c => c.IsActive).OrderBy(c => c.DisplayOrder))
                                                 {
-                                                    var enumValue = ParseCategoryName(dbCategory.Name);
-                                                    if (enumValue.HasValue)
-                                                    {
-                                                        <MudSelectItem T="VehicleCategory" Value="@enumValue.Value">
-                                                            <div style="padding: 8px 0;">
-                                                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="width: 100%;">
-                                                                    <MudIcon Icon="@Icons.Material.Filled.LocalOffer" 
-                                                                             Size="Size.Medium" 
-                                                                             Color="@GetCategoryColor(enumValue.Value)" />
-                                                                    <MudStack Spacing="0" Style="flex: 1;">
-                                                                        <MudText Typo="Typo.body1" Style="font-weight: 500;">
-                                                                            @dbCategory.Name
+                                                    <MudSelectItem T="int" Value="@dbCategory.Id">
+                                                        <div style="padding: 8px 0;">
+                                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="width: 100%;">
+                                                                <MudIcon Icon="@Icons.Material.Filled.LocalOffer" 
+                                                                         Size="Size.Medium" 
+                                                                         Color="@GetCategoryColor(dbCategory.Name)" />
+                                                                <MudStack Spacing="0" Style="flex: 1;">
+                                                                    <MudText Typo="Typo.body1" Style="font-weight: 500;">
+                                                                        @dbCategory.Name
+                                                                    </MudText>
+                                                                    @if (!string.IsNullOrEmpty(dbCategory.Description))
+                                                                    {
+                                                                        <MudText Typo="Typo.caption" 
+                                                                                 Color="Color.Secondary" 
+                                                                                 Style="line-height: 1.4; margin-top: 2px;">
+                                                                            @dbCategory.Description
                                                                         </MudText>
-                                                                        @if (!string.IsNullOrEmpty(dbCategory.Description))
-                                                                        {
-                                                                            <MudText Typo="Typo.caption" 
-                                                                                     Color="Color.Secondary" 
-                                                                                     Style="line-height: 1.4; margin-top: 2px;">
-                                                                                @dbCategory.Description
-                                                                            </MudText>
-                                                                        }
-                                                                    </MudStack>
+                                                                    }
                                                                 </MudStack>
-                                                            </div>
-                                                        </MudSelectItem>
-                                                    }
+                                                            </MudStack>
+                                                        </div>
+                                                    </MudSelectItem>
                                                 }
                                             </MudSelect>
                                         }
@@ -335,7 +331,7 @@
         {
             // Set defaults for new vehicle
             vehicleModel.Year = DateTime.Now.Year;
-            vehicleModel.Category = VehicleCategory.Economy;
+            vehicleModel.CategoryId = dbCategories.FirstOrDefault()?.Id ?? 1;
             vehicleModel.SeatingCapacity = 5;
         }
     }
@@ -372,26 +368,9 @@
         }
     }
 
-    private VehicleCategory? ParseCategoryName(string categoryName)
-    {
-        // Map database category names to enum values
-        return categoryName.ToLower() switch
-        {
-            "economy" => VehicleCategory.Economy,
-            "compact" => VehicleCategory.Compact,
-            "midsize" => VehicleCategory.Midsize,
-            "suv" => VehicleCategory.SUV,
-            "luxury" => VehicleCategory.Luxury,
-            "van" => VehicleCategory.Van,
-            "sports" => VehicleCategory.Sports,
-            _ => null
-        };
-    }
-
     private string GetCategoryHelperText()
     {
-        var selectedCategory = dbCategories.FirstOrDefault(c => 
-            ParseCategoryName(c.Name) == vehicleModel.Category);
+        var selectedCategory = dbCategories.FirstOrDefault(c => c.Id == vehicleModel.CategoryId);
         
         if (selectedCategory != null)
         {
@@ -418,7 +397,7 @@
                     Model = vehicle.Model,
                     RegistrationNumber = vehicle.RegistrationNumber,
                     Year = vehicle.Year,
-                    Category = vehicle.Category,
+                    CategoryId = vehicle.CategoryId,
                     DailyRate = vehicle.DailyRate,
                     Status = vehicle.Status,
                     ImageUrl = vehicle.ImageUrl,
@@ -465,7 +444,7 @@
                     Model = vehicleModel.Model,
                     RegistrationNumber = vehicleModel.RegistrationNumber,
                     Year = vehicleModel.Year,
-                    Category = vehicleModel.Category,
+                    CategoryId = vehicleModel.CategoryId,
                     DailyRate = vehicleModel.DailyRate,
                     Status = vehicleModel.Status,
                     ImageUrl = vehicleModel.ImageUrl,
@@ -496,7 +475,7 @@
                     Model = vehicleModel.Model,
                     RegistrationNumber = vehicleModel.RegistrationNumber,
                     Year = vehicleModel.Year,
-                    Category = vehicleModel.Category,
+                    CategoryId = vehicleModel.CategoryId,
                     DailyRate = vehicleModel.DailyRate,
                     ImageUrl = vehicleModel.ImageUrl,
                     Mileage = vehicleModel.Mileage,
@@ -559,17 +538,17 @@
         };
     }
 
-    private Color GetCategoryColor(VehicleCategory category)
+    private Color GetCategoryColor(string categoryName)
     {
-        return category switch
+        return categoryName.ToLower() switch
         {
-            VehicleCategory.Economy => Color.Info,
-            VehicleCategory.Compact => Color.Primary,
-            VehicleCategory.Midsize => Color.Success,
-            VehicleCategory.SUV => Color.Success,
-            VehicleCategory.Luxury => Color.Warning,
-            VehicleCategory.Sports => Color.Error,
-            VehicleCategory.Van => Color.Secondary,
+            "economy" => Color.Info,
+            "compact" => Color.Primary,
+            "midsize" => Color.Success,
+            "suv" => Color.Success,
+            "luxury" => Color.Warning,
+            "sports" => Color.Error,
+            "van" => Color.Secondary,
             _ => Color.Default
         };
     }
@@ -580,7 +559,7 @@
         public string Model { get; set; } = string.Empty;
         public string RegistrationNumber { get; set; } = string.Empty;
         public int Year { get; set; }
-        public VehicleCategory Category { get; set; }
+        public int CategoryId { get; set; }
         public decimal DailyRate { get; set; }
         public VehicleStatus Status { get; set; } = VehicleStatus.Available;
         public string? ImageUrl { get; set; }

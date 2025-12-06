@@ -9,7 +9,7 @@ public interface IApiService
     Task<List<Vehicle>> GetVehiclesAsync();
     Task<Vehicle?> GetVehicleAsync(int id);
     Task<List<Vehicle>> GetAvailableVehiclesAsync(DateTime startDate, DateTime endDate);
-    Task<List<Vehicle>> GetVehiclesByCategoryAsync(VehicleCategory category);
+    Task<List<Vehicle>> GetVehiclesByCategoryIdAsync(int categoryId);
     Task<Vehicle?> CreateVehicleAsync(CreateVehicleRequest request);
     Task<bool> UpdateVehicleAsync(int id, Vehicle vehicle);
     Task<bool> DeleteVehicleAsync(int id);
@@ -116,11 +116,11 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<List<Vehicle>> GetVehiclesByCategoryAsync(VehicleCategory category)
+    public async Task<List<Vehicle>> GetVehiclesByCategoryIdAsync(int categoryId)
     {
         try
         {
-            var vehicles = await _httpClient.GetFromJsonAsync<List<Vehicle>>($"api/vehicles/category/{category}");
+            var vehicles = await _httpClient.GetFromJsonAsync<List<Vehicle>>($"api/vehicles/category/{categoryId}");
             return vehicles ?? new List<Vehicle>();
         }
         catch (Exception ex)
@@ -497,12 +497,17 @@ public class ApiService : IApiService
             {
                 return await response.Content.ReadFromJsonAsync<VehicleDamage>();
             }
-            
-            return null;
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error creating vehicle damage. Status: {response.StatusCode}, Content: {errorContent}");
+                return null;
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error creating vehicle damage: {ex.Message}");
+            Console.WriteLine($"Exception creating vehicle damage: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             return null;
         }
     }

@@ -70,7 +70,7 @@ public class CreateVehicleDamageRequest
     public DateTime ReportedDate { get; set; } = DateTime.Now;
     public string Description { get; set; } = string.Empty;
     public int Severity { get; set; }
-    public decimal RepairCost { get; set; }
+    public decimal? RepairCost { get; set; } // Make nullable so customers don't need to provide
     public string? ReportedBy { get; set; }
     public string? ImageUrl { get; set; }
 }
