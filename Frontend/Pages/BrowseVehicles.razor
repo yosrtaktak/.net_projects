@@ -4,6 +4,7 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @using Frontend.Models
+@using Microsoft.AspNetCore.WebUtilities
 
 <PageTitle>Browse Vehicles - Car Rental</PageTitle>
 
@@ -27,7 +28,11 @@
             <MudPaper Elevation="2" Class="pa-4">
                 <MudGrid Spacing="2">
                     <MudItem xs="12" sm="6" md="3">
-                        <MudSelect T="VehicleCategory?" Label="Category" @bind-Value="selectedCategory" Clearable="true">
+                        <MudSelect T="VehicleCategory?" 
+                                   Label="Category" 
+                                   Value="@selectedCategory" 
+                                   ValueChanged="@((VehicleCategory? value) => OnCategoryChanged(value))"
+                                   Clearable="true">
                             @foreach (var category in Enum.GetValues<VehicleCategory>())
                             {
                                 <MudSelectItem T="VehicleCategory?" Value="@category">@category</MudSelectItem>
@@ -35,11 +40,21 @@
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="3">
-                        <MudNumericField T="decimal?" Label="Max Daily Rate" @bind-Value="maxDailyRate" 
-                                         Min="0" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+                        <MudNumericField T="decimal?" 
+                                         Label="Max Daily Rate" 
+                                         Value="@maxDailyRate"
+                                         ValueChanged="@((decimal? value) => OnMaxDailyRateChanged(value))"
+                                         Min="0" 
+                                         Adornment="Adornment.Start" 
+                                         AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
                     </MudItem>
                     <MudItem xs="12" sm="6" md="3">
-                        <MudNumericField T="int?" Label="Min Seats" @bind-Value="minSeats" Min="1" Max="15" />
+                        <MudNumericField T="int?" 
+                                         Label="Min Seats" 
+                                         Value="@minSeats"
+                                         ValueChanged="@((int? value) => OnMinSeatsChanged(value))"
+                                         Min="1" 
+                                         Max="15" />
                     </MudItem>
                     <MudItem xs="12" sm="6" md="3">
                         <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" 
@@ -189,13 +204,20 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Check for category query parameter from home page
+        var uri = new Uri(NavigationManager.Uri);
+        var queryParams = QueryHelpers.ParseQuery(uri.Query);
+        
+        if (queryParams.TryGetValue("category", out var categoryValue))
+        {
+            // Try to parse the category from query string
+            if (Enum.TryParse<VehicleCategory>(categoryValue, true, out var category))
+            {
+                selectedCategory = category;
+            }
+        }
+        
         await LoadVehicles();
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        ApplyFilters();
-        await base.OnParametersSetAsync();
     }
 
     private async Task LoadVehicles()
@@ -216,6 +238,27 @@
         {
             isLoading = false;
         }
+    }
+
+    private void OnCategoryChanged(VehicleCategory? value)
+    {
+        selectedCategory = value;
+        ApplyFilters();
+        StateHasChanged();
+    }
+
+    private void OnMaxDailyRateChanged(decimal? value)
+    {
+        maxDailyRate = value;
+        ApplyFilters();
+        StateHasChanged();
+    }
+
+    private void OnMinSeatsChanged(int? value)
+    {
+        minSeats = value;
+        ApplyFilters();
+        StateHasChanged();
     }
 
     private void ApplyFilters()
@@ -246,6 +289,7 @@
         maxDailyRate = null;
         minSeats = null;
         ApplyFilters();
+        StateHasChanged();
     }
 
     private void RentVehicle(Vehicle vehicle)
