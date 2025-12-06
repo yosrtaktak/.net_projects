@@ -204,7 +204,7 @@
             </MudSelect>
             <MudDatePicker Label="Reported Date" @bind-Date="reportedDate" Required="true" Variant="Variant.Outlined" />
             <MudTextField T="string" Label="Description" @bind-Value="createModel.Description" Lines="3" Required="true" Variant="Variant.Outlined" />
-            <MudNumericField T="decimal" Label="Estimated Repair Cost" @bind-Value="createModel.RepairCost" Min="0" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Variant="Variant.Outlined" />
+            <MudNumericField T="decimal?" Label="Estimated Repair Cost" @bind-Value="createModel.RepairCost" Min="0m" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Variant="Variant.Outlined" />
             <MudTextField T="string" Label="Reported By (Optional)" @bind-Value="createModel.ReportedBy" Variant="Variant.Outlined" />
             <MudNumericField T="int?" Label="Related Rental ID (Optional)" @bind-Value="createModel.RentalId" Variant="Variant.Outlined" />
         </MudStack>
@@ -232,7 +232,7 @@
     <DialogContent>
         <MudStack Spacing="3">
             <MudDatePicker Label="Repair Completion Date" @bind-Date="repairedDate" Required="true" Variant="Variant.Outlined" />
-            <MudNumericField T="decimal?" Label="Actual Repair Cost" @bind-Value="completeModel.ActualRepairCost" Min="0" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Variant="Variant.Outlined" />
+            <MudNumericField T="decimal?" Label="Actual Repair Cost" @bind-Value="completeModel.ActualRepairCost" Min="0m" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Variant="Variant.Outlined" />
             <MudTextField T="string" Label="Repair Notes" @bind-Value="completeModel.RepairNotes" Lines="3" Variant="Variant.Outlined" />
         </MudStack>
     </DialogContent>

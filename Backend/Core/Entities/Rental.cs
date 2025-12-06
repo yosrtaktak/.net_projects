@@ -4,8 +4,9 @@ public class Rental
 {
     public int Id { get; set; }
     
-    public int CustomerId { get; set; }
-    public Customer Customer { get; set; } = null!;
+    // Changed from CustomerId (int) to UserId (string)
+    public string UserId { get; set; } = null!;
+    public ApplicationUser User { get; set; } = null!;
     
     public int VehicleId { get; set; }
     public Vehicle Vehicle { get; set; } = null!;

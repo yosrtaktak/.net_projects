@@ -40,7 +40,7 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
     {
         return await _dbSet
             .Include(v => v.Rentals)
-            .ThenInclude(r => r.Customer)
+            .ThenInclude(r => r.User)
             .FirstOrDefaultAsync(v => v.Id == vehicleId);
     }
 
@@ -48,7 +48,7 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
     {
         return await _dbSet
             .Include(v => v.Rentals)
-                .ThenInclude(r => r.Customer)
+                .ThenInclude(r => r.User)
             .Include(v => v.MaintenanceRecords)
             .Include(v => v.DamageRecords)
             .FirstOrDefaultAsync(v => v.Id == vehicleId);

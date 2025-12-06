@@ -1,0 +1,411 @@
+@page "/admin/categories"
+@layout AdminLayout
+@inject IApiService ApiService
+@inject IAuthService AuthService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@using Frontend.Models
+@using Frontend.Services
+
+<PageTitle>Manage Categories - Car Rental System</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
+    @if (isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (!isAuthorized)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-4">
+            <strong>Access Denied</strong> - Admin privileges required.
+        </MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <!-- Header -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">
+                        <MudIcon Icon="@Icons.Material.Filled.Category" Color="Color.Primary" Class="mr-2" />
+                        <strong>Manage Categories</strong>
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Organize and manage vehicle categories
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="ShowCreateModal">
+                    Add Category
+                </MudButton>
+            </MudStack>
+
+            <!-- Table -->
+            @if (isLoadingCategories)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (!categories.Any())
+            {
+                <MudPaper Elevation="2" Class="pa-8 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Color="Color.Secondary" Style="font-size: 5rem;" />
+                    <MudText Typo="Typo.h5" Color="Color.Secondary" Class="mt-4">No categories found</MudText>
+                    <MudText Typo="Typo.body1" Color="Color.Secondary">
+                        Create your first category to organize vehicles
+                    </MudText>
+                </MudPaper>
+            }
+            else
+            {
+                <MudPaper Elevation="2">
+                    <MudTable Items="@categories" 
+                              Hover="true" 
+                              Breakpoint="Breakpoint.Sm" 
+                              Dense="true">
+                        <HeaderContent>
+                            <MudTh>Order</MudTh>
+                            <MudTh>Name</MudTh>
+                            <MudTh>Description</MudTh>
+                            <MudTh>Vehicles</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh>Created</MudTh>
+                            <MudTh>Actions</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Order">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.DisplayOrder</MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Name">
+                                <MudText Typo="Typo.body2"><strong>@context.Name</strong></MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Description">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@(context.Description ?? "No description")</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Vehicles">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary">@context.VehicleCount</MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Status">
+                                <MudChip T="string" 
+                                        Size="Size.Small" 
+                                        Color="@(context.IsActive ? Color.Success : Color.Default)">
+                                    @(context.IsActive ? "Active" : "Inactive")
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Created">
+                                <MudText Typo="Typo.caption">@context.CreatedAt.ToString("MMM dd, yyyy")</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Actions">
+                                <MudButtonGroup Size="Size.Small" Variant="Variant.Outlined">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                   Color="Color.Primary" 
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => ShowEditModal(context))" />
+                                    <MudIconButton Icon="@(context.IsActive ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)" 
+                                                   Color="@(context.IsActive ? Color.Warning : Color.Success)" 
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => ToggleActive(context.Id))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                   Color="Color.Error" 
+                                                   Size="Size.Small"
+                                                   Disabled="@(context.VehicleCount > 0)"
+                                                   OnClick="@(() => ShowDeleteConfirmation(context))" />
+                                </MudButtonGroup>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    }
+</MudContainer>
+
+<!-- Create/Edit Modal -->
+<MudDialog @bind-Visible="showModal">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(isEditMode ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" Class="mr-2" />
+            @(isEditMode ? "Edit Category" : "Create New Category")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <EditForm Model="@categoryModel" OnValidSubmit="SaveCategory">
+            <DataAnnotationsValidator />
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="categoryModel.Name" 
+                              Label="Name" 
+                              Variant="Variant.Outlined" 
+                              Required="true"
+                              HelperText="e.g., Economy, Luxury, SUV"
+                              For="@(() => categoryModel.Name)" />
+
+                <MudTextField @bind-Value="categoryModel.Description" 
+                              Label="Description" 
+                              Variant="Variant.Outlined" 
+                              Lines="3"
+                              HelperText="Brief description of this category"
+                              For="@(() => categoryModel.Description)" />
+
+                <MudNumericField @bind-Value="categoryModel.DisplayOrder" 
+                                 Label="Display Order" 
+                                 Variant="Variant.Outlined" 
+                                 Min="0"
+                                 HelperText="Lower numbers appear first"
+                                 For="@(() => categoryModel.DisplayOrder)" />
+
+                <MudTextField @bind-Value="categoryModel.IconUrl" 
+                              Label="Icon URL (Optional)" 
+                              Variant="Variant.Outlined" 
+                              HelperText="URL to category icon"
+                              For="@(() => categoryModel.IconUrl)" />
+
+                <MudSwitch @bind-Value="categoryModel.IsActive" 
+                           Label="Active (visible to users)" 
+                           Color="Color.Success" />
+            </MudStack>
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseModal">Cancel</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="SaveCategory" 
+                   Disabled="@isProcessing"
+                   StartIcon="@Icons.Material.Filled.Save">
+            @if (isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @(isEditMode ? "Update" : "Create")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Delete Confirmation Modal -->
+<MudDialog @bind-Visible="showDeleteModal">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Color="Color.Error">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2" />
+            Confirm Delete
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (selectedCategory != null)
+        {
+            <MudText>
+                Are you sure you want to delete the category <strong>@selectedCategory.Name</strong>?
+            </MudText>
+            <MudAlert Severity="Severity.Warning" Class="mt-3">
+                This action cannot be undone.
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseDeleteModal">Cancel</MudButton>
+        <MudButton Color="Color.Error" 
+                   Variant="Variant.Filled" 
+                   OnClick="DeleteCategory" 
+                   Disabled="@isProcessing"
+                   StartIcon="@Icons.Material.Filled.Delete">
+            @if (isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Delete
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<CategoryModel> categories = new();
+    private CreateCategoryModel categoryModel = new();
+    private CategoryModel? selectedCategory;
+    
+    private bool isLoading = true;
+    private bool isLoadingCategories = false;
+    private bool isProcessing = false;
+    private bool isAuthorized = false;
+    private bool showModal = false;
+    private bool showDeleteModal = false;
+    private bool isEditMode = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var role = await AuthService.GetRoleAsync();
+        isAuthorized = role == "Admin";
+
+        if (isAuthorized)
+        {
+            await LoadCategories();
+        }
+        
+        isLoading = false;
+    }
+
+    private async Task LoadCategories()
+    {
+        isLoadingCategories = true;
+        try
+        {
+            categories = await ApiService.GetCategoriesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading categories: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoadingCategories = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        isEditMode = false;
+        categoryModel = new CreateCategoryModel 
+        { 
+            IsActive = true, 
+            DisplayOrder = categories.Count
+        };
+        showModal = true;
+    }
+
+    private void ShowEditModal(CategoryModel category)
+    {
+        isEditMode = true;
+        selectedCategory = category;
+        categoryModel = new CreateCategoryModel
+        {
+            Name = category.Name,
+            Description = category.Description,
+            IsActive = category.IsActive,
+            DisplayOrder = category.DisplayOrder,
+            IconUrl = category.IconUrl
+        };
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        selectedCategory = null;
+    }
+
+    private async Task SaveCategory()
+    {
+        isProcessing = true;
+
+        try
+        {
+            if (isEditMode && selectedCategory != null)
+            {
+                var updateModel = new UpdateCategoryModel
+                {
+                    Name = categoryModel.Name,
+                    Description = categoryModel.Description,
+                    IsActive = categoryModel.IsActive,
+                    DisplayOrder = categoryModel.DisplayOrder,
+                    IconUrl = categoryModel.IconUrl
+                };
+
+                var result = await ApiService.UpdateCategoryAsync(selectedCategory.Id, updateModel);
+                if (result != null)
+                {
+                    Snackbar.Add($"Category '{result.Name}' updated successfully!", Severity.Success);
+                    await LoadCategories();
+                    CloseModal();
+                }
+                else
+                {
+                    Snackbar.Add("Failed to update category. Please try again.", Severity.Error);
+                }
+            }
+            else
+            {
+                var result = await ApiService.CreateCategoryAsync(categoryModel);
+                if (result != null)
+                {
+                    Snackbar.Add($"Category '{result.Name}' created successfully!", Severity.Success);
+                    await LoadCategories();
+                    CloseModal();
+                }
+                else
+                {
+                    Snackbar.Add("Failed to create category. Please try again.", Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task ToggleActive(int categoryId)
+    {
+        try
+        {
+            var result = await ApiService.ToggleCategoryActiveAsync(categoryId);
+            if (result != null)
+            {
+                Snackbar.Add($"Category '{result.Name}' is now {(result.IsActive ? "active" : "inactive")}.", Severity.Success);
+                await LoadCategories();
+            }
+            else
+            {
+                Snackbar.Add("Failed to update category status.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void ShowDeleteConfirmation(CategoryModel category)
+    {
+        selectedCategory = category;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        selectedCategory = null;
+    }
+
+    private async Task DeleteCategory()
+    {
+        if (selectedCategory == null) return;
+
+        isProcessing = true;
+        try
+        {
+            var success = await ApiService.DeleteCategoryAsync(selectedCategory.Id);
+
+            if (success)
+            {
+                Snackbar.Add($"Category '{selectedCategory.Name}' deleted successfully!", Severity.Success);
+                await LoadCategories();
+                CloseDeleteModal();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete category. It may have associated vehicles.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+}

@@ -1,381 +1,232 @@
-# 🚀 Quick Testing Guide - Fixed Application
+# Testing Guide - Reports and Rentals Management
 
-## ✅ Build Status: SUCCESSFUL
+## Prerequisites
+1. Backend API running on `https://localhost:5000`
+2. Frontend running on `https://localhost:7148`
+3. Login as Admin or Employee user
 
-All errors fixed! The application now has proper role-based separation.
+## Test Scenarios
 
----
+### 1. Test Reports Dashboard
 
-## 🎯 What Changed
+#### Access the Reports Page
+```
+URL: https://localhost:7148/reports
+Required Role: Admin or Employee
+```
 
-### Before (❌ Broken)
-- Admin could rent cars
-- Customer saw admin features
-- Confusing mixed interface
-- Wrong navigation for roles
+#### Expected Data
+- **Key Metrics**: Should show 4 cards with revenue and vehicle counts
+- **Rental Status**: Breakdown of Active, Reserved, Completed, Cancelled
+- **Category Table**: Vehicles grouped by category with availability rates
+- **Top Vehicles**: Top 5 most rented vehicles with revenue
+- **Revenue Trend**: Monthly revenue for last 6 months
+- **Recent Rentals**: Last 10 rental transactions
 
-### After (✅ Fixed)
-- **Admin** → Management portal ONLY
-- **Employee** → Limited management portal
-- **Customer** → Rental interface ONLY
-- **Public** → Browse vehicles, must login to rent
+#### Test Actions
+1. Click "Refresh Data" button - should reload all report data
+2. Verify all numbers are accurate and match database
+3. Check that charts/tables display correctly
 
----
+### 2. Test Rentals Management
 
-## 🚀 How to Test
+#### Access the Manage Rentals Page
+```
+URL: https://localhost:7148/rentals/manage
+Required Role: Admin or Employee
+```
 
-### 1. Start the Applications
+#### Test Filtering
+1. **Filter by Status**:
+   - Select "Active" from Status dropdown
+   - Click "Apply Filters"
+   - Verify only Active rentals are shown
 
+2. **Filter by Date Range**:
+   - Select Start Date
+   - Select End Date
+   - Click "Apply Filters"
+   - Verify rentals within date range
+
+3. **Clear Filters**:
+   - Click "Clear" button
+   - Verify all rentals are shown again
+
+#### Test Rental Actions
+
+##### Complete Rental
+1. Find a rental with status "Active" or "Reserved"
+2. Click the three-dot menu (?)
+3. Select "Complete"
+4. Enter End Mileage in dialog
+5. Click "Complete"
+6. Verify:
+   - Success message appears
+   - Rental status changes to "Completed"
+   - Vehicle status changes to "Available"
+   - Table refreshes
+
+##### Cancel Rental
+1. Find a rental with status "Active" or "Reserved"
+2. Click the three-dot menu (?)
+3. Select "Cancel"
+4. Verify:
+   - Success message appears
+   - Rental status changes to "Cancelled"
+   - Vehicle status changes to "Available"
+   - Table refreshes
+
+##### Update Status
+1. Click the three-dot menu (?) on any rental
+2. Select "Update Status"
+3. Choose new status from dropdown
+4. Click "Update"
+5. Verify:
+   - Success message appears
+   - Status updates in table
+   - Vehicle status syncs appropriately
+
+##### View Details
+1. Click the three-dot menu (?)
+2. Select "View Details"
+3. Should navigate to rental details page
+
+### 3. Test API Endpoints Directly
+
+#### Reports Endpoints
 ```bash
-# Terminal 1 - Backend
-cd Backend
-dotnet run
-# Runs on http://localhost:5000
+# Get Dashboard Report
+curl -X GET "https://localhost:5000/api/reports/dashboard" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
-# Terminal 2 - Frontend
-cd Frontend
-dotnet run
-# Runs on http://localhost:5001
+# Get Rental Statistics
+curl -X GET "https://localhost:5000/api/reports/rentals/statistics?startDate=2024-01-01&endDate=2024-12-31" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Get Vehicle Utilization
+curl -X GET "https://localhost:5000/api/reports/vehicles/utilization?startDate=2024-01-01&endDate=2024-12-31" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Get Monthly Revenue
+curl -X GET "https://localhost:5000/api/reports/revenue/monthly?months=12" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-### 2. Test Admin Role
-
-**Login:**
-1. Go to http://localhost:5001/login
-2. Click **"Quick Login - Admin"** button
-   - Username: `admin`
-   - Password: `Admin@123`
-
-**Expected Behavior:**
-✅ Redirected to `/admin` (Admin Dashboard)
-✅ See **AdminLayout** with sidebar navigation
-✅ Sidebar shows:
-   - Dashboard
-   - Fleet Management (group)
-     - Manage Vehicles
-     - Maintenance
-     - Damages
-   - Business Management (group)
-     - All Rentals
-     - Customers
-     - Reports
-
-**Test Navigation:**
-- Click **"Manage Fleet"** → Should open `/vehicles/manage`
-- See statistics cards
-- See all vehicles (available, rented, maintenance, etc.)
-- Can Edit, Delete, Schedule Maintenance, Report Damage
-- **No "Rent Now" button** (Admin doesn't rent!)
-
-**Test Protection:**
-- Try to visit `/my-rentals`
-- ✅ Should redirect back to `/admin`
-
----
-
-### 3. Test Employee Role
-
-**Login:**
-1. Logout admin
-2. Go to http://localhost:5001/login
-3. Click **"Quick Login - Employee"** button
-   - Username: `employee`
-   - Password: `Employee@123`
-
-**Expected Behavior:**
-✅ Redirected to `/admin` (Admin Dashboard)
-✅ See **AdminLayout** with sidebar (like admin)
-✅ Can access vehicle management
-✅ Can manage rentals
-✅ **CANNOT delete vehicles** (admin only)
-
-**Test Permissions:**
-- Go to `/vehicles/manage`
-- Try to delete a vehicle
-- ✅ Delete button should be hidden (employee can't delete)
-
----
-
-### 4. Test Customer Role
-
-**Login:**
-1. Logout employee
-2. Go to http://localhost:5001/login
-3. Click **"Quick Login - Customer"** button
-   - Username: `customer`
-   - Password: `Customer@123`
-
-**Expected Behavior:**
-✅ Redirected to `/` (Home Page)
-✅ See **CustomerLayout** with top navigation bar
-✅ Top nav shows:
-   - Home
-   - Browse Vehicles
-   - My Rentals (since logged in)
-   - User menu with profile/logout
-
-**Test Customer Features:**
-1. Click **"Browse Vehicles"** in nav
-2. → Goes to `/vehicles/browse`
-3. See available vehicles only
-4. See **"Rent Now"** buttons on available vehicles
-5. Filters: Category, Max Price, Min Seats
-
-**Test Protection:**
-- Try to visit `/admin`
-- ✅ Should redirect to `/` or show access denied
-- Try to visit `/vehicles/manage`
-- ✅ Should redirect to `/` or show access denied
-
----
-
-### 5. Test Public User (Not Logged In)
-
-**Browse Without Login:**
-1. Logout (if logged in)
-2. Go to http://localhost:5001/
-
-**Expected Behavior:**
-✅ See **CustomerLayout**
-✅ See Home page with hero section
-✅ Top nav shows:
-   - Home
-   - Browse Vehicles
-   - **Login** button (not logged in)
-   - **Register** button
-
-**Test Browsing:**
-1. Click **"Browse Vehicles"**
-2. → Goes to `/vehicles/browse`
-3. See available vehicles
-4. See **"Rent Now"** buttons
-
-**Test Protection:**
-1. Click **"Rent Now"** on any vehicle
-2. ✅ Should redirect to `/login`
-3. After login as customer
-4. ✅ Should redirect back to rental process
-
----
-
-## 📋 Test Checklist
-
-### ✅ Admin Testing
-- [ ] Login redirects to `/admin`
-- [ ] Sidebar navigation visible
-- [ ] Can access `/vehicles/manage`
-- [ ] Can see all vehicles (all statuses)
-- [ ] Can edit vehicles
-- [ ] Can delete vehicles
-- [ ] Can schedule maintenance
-- [ ] Can report damage
-- [ ] No "Rent Now" buttons visible
-- [ ] Cannot access `/my-rentals`
-
-### ✅ Employee Testing
-- [ ] Login redirects to `/admin`
-- [ ] Sidebar navigation visible
-- [ ] Can access `/vehicles/manage`
-- [ ] Can edit vehicles
-- [ ] **Cannot** delete vehicles (no button)
-- [ ] Can manage rentals
-- [ ] Can schedule maintenance
-- [ ] No "Rent Now" buttons visible
-
-### ✅ Customer Testing
-- [ ] Login redirects to `/`
-- [ ] Top navigation visible
-- [ ] Can access `/vehicles/browse`
-- [ ] See only available vehicles
-- [ ] Can see "Rent Now" buttons
-- [ ] Can access `/my-rentals`
-- [ ] **Cannot** access `/admin`
-- [ ] **Cannot** access `/vehicles/manage`
-
-### ✅ Public User Testing
-- [ ] Can visit `/`
-- [ ] Can access `/vehicles/browse`
-- [ ] See "Rent Now" buttons
-- [ ] Clicking "Rent Now" redirects to `/login`
-- [ ] **Cannot** access `/admin`
-- [ ] **Cannot** access `/my-rentals` without login
-
----
-
-## 🎨 Visual Verification
-
-### Admin/Employee Layout (Sidebar)
-```
-┌────────────────────────────────────┐
-│ [≡] Car Rental - Admin Portal     │
-├────────┬───────────────────────────┤
-│        │                           │
-│ [≡]    │   Dashboard Content       │
-│ Dash   │                           │
-│ Fleet  │   [Statistics Cards]      │
-│ Manage │                           │
-│ Maint  │   [Vehicle Grid]          │
-│ Damage │                           │
-│        │                           │
-│ User   │                           │
-│ Logout │                           │
-└────────┴───────────────────────────┘
-```
-
-### Customer Layout (Top Nav)
-```
-┌────────────────────────────────────┐
-│ [Car]  Home  Browse  Rentals  [👤] │
-├────────────────────────────────────┤
-│                                    │
-│     Hero Section                   │
-│                                    │
-│     [Browse Vehicles] [My Rentals] │
-│                                    │
-│     Feature Cards                  │
-│                                    │
-│     Vehicle Categories             │
-│                                    │
-├────────────────────────────────────┤
-│ Footer: Links | Contact | Info    │
-└────────────────────────────────────┘
-```
-
----
-
-## 🔍 Common Issues & Solutions
-
-### Issue: "Still seeing admin features as customer"
-**Solution:** Clear browser cache and cookies
-```
-Chrome: Ctrl+Shift+Delete
-Firefox: Ctrl+Shift+Delete
-Edge: Ctrl+Shift+Delete
-```
-
-### Issue: "Login doesn't redirect properly"
-**Solution:**
-1. Check backend is running on port 5000
-2. Check frontend is running on port 5001
-3. Clear local storage:
-   - Open DevTools (F12)
-   - Application tab → Local Storage
-   - Clear all
-
-### Issue: "Cannot access /vehicles/browse"
-**Solution:**
-1. Check URL is correct: `/vehicles/browse` (not `/vehicles`)
-2. Check `BrowseVehicles.razor` file exists
-3. Rebuild: `dotnet build Frontend/Frontend.csproj`
-
-### Issue: "Build errors"
-**Solution:**
+#### Rentals Management Endpoints
 ```bash
-cd Frontend
-dotnet clean
-dotnet build
+# Get Rentals with Filters
+curl -X GET "https://localhost:5000/api/rentals/manage?status=Active" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Update Rental Status
+curl -X PUT "https://localhost:5000/api/rentals/1/status" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "Active"}'
+
+# Complete Rental
+curl -X PUT "https://localhost:5000/api/rentals/1/complete" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"endMileage": 50000}'
+
+# Cancel Rental
+curl -X PUT "https://localhost:5000/api/rentals/1/cancel" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
----
+## Expected Behaviors
 
-## 🎯 Expected User Flows
+### Reports Page
+- ? Shows real-time data from database
+- ? Updates when "Refresh Data" is clicked
+- ? Displays charts and tables correctly
+- ? Access denied for non-admin/employee users
+- ? Responsive design works on all screen sizes
 
-### Flow 1: Customer Renting a Vehicle
+### Manage Rentals Page
+- ? Lists all rentals by default
+- ? Filters work correctly
+- ? Statistics cards update with filtered data
+- ? Complete dialog validates mileage input
+- ? Status updates sync vehicle status
+- ? Success/error messages display appropriately
+- ? Table refreshes after actions
+
+## Common Issues & Solutions
+
+### Issue: "Access Denied" Message
+**Solution**: Ensure you're logged in as Admin or Employee
+
+### Issue: No Data Showing in Reports
+**Solution**: 
+1. Check that rentals exist in database
+2. Verify API is running
+3. Check browser console for errors
+4. Ensure JWT token is valid
+
+### Issue: Filters Not Working
+**Solution**:
+1. Check date format (should be yyyy-MM-dd)
+2. Verify status values match enum
+3. Check browser console for API errors
+
+### Issue: Complete Rental Fails
+**Solution**:
+1. Ensure end mileage is greater than start mileage
+2. Verify rental status is Active or Reserved
+3. Check that vehicle exists
+
+### Issue: Status Update Not Syncing Vehicle
+**Solution**:
+1. Check RentalService.UpdateRentalStatusAsync logic
+2. Verify vehicle relationship is loaded
+3. Check database constraints
+
+## Database Verification Queries
+
+```sql
+-- Check rental counts by status
+SELECT Status, COUNT(*) as Count
+FROM Rentals
+GROUP BY Status;
+
+-- Check total revenue
+SELECT SUM(TotalCost) as TotalRevenue
+FROM Rentals
+WHERE Status = 4; -- Completed
+
+-- Check vehicle utilization
+SELECT v.Brand, v.Model, COUNT(r.Id) as RentalCount
+FROM Vehicles v
+LEFT JOIN Rentals r ON v.Id = r.VehicleId
+WHERE r.Status = 4
+GROUP BY v.Id, v.Brand, v.Model
+ORDER BY RentalCount DESC;
+
+-- Check monthly revenue
+SELECT 
+    YEAR(StartDate) as Year,
+    MONTH(StartDate) as Month,
+    SUM(TotalCost) as Revenue,
+    COUNT(*) as RentalCount
+FROM Rentals
+WHERE Status = 4
+GROUP BY YEAR(StartDate), MONTH(StartDate)
+ORDER BY Year DESC, Month DESC;
 ```
-1. Visit http://localhost:5001/
-2. Click "Browse Vehicles"
-3. Filter by category (e.g., "SUV")
-4. Find a vehicle
-5. Click "Rent Now"
-6. If not logged in → Redirected to /login
-7. After login → Back to rental process
-8. Fill rental dates
-9. Submit
-10. View in "My Rentals"
-```
 
-### Flow 2: Admin Managing Fleet
-```
-1. Visit http://localhost:5001/login
-2. Login as Admin
-3. Redirected to /admin
-4. Click "Manage Fleet" in sidebar
-5. See all vehicles with statistics
-6. Click "Edit" on a vehicle
-7. Update details
-8. Save
-9. Schedule maintenance
-10. Report damage if needed
-```
+## Performance Considerations
 
-### Flow 3: Employee Helping Customer
-```
-1. Login as Employee
-2. Redirected to /admin
-3. Click "All Rentals" in sidebar
-4. See list of all rentals
-5. Find customer rental
-6. Update status (e.g., "Completed")
-7. Process return
-8. Update vehicle mileage
-```
+1. **Large Datasets**: Reports may take longer with thousands of rentals
+2. **Caching**: Consider implementing caching for dashboard reports
+3. **Pagination**: Add pagination to Manage Rentals table for large datasets
+4. **Indexes**: Ensure database indexes on Status, StartDate, EndDate columns
 
----
+## Next Steps
 
-## 📊 Page Access Matrix
-
-| Page | Public | Customer | Employee | Admin |
-|------|--------|----------|----------|-------|
-| `/` | ✅ | ✅ | ✅* | ✅* |
-| `/vehicles/browse` | ✅ (view only) | ✅ (can rent) | ✅* | ✅* |
-| `/my-rentals` | ❌ | ✅ | ❌ | ❌ |
-| `/profile` | ❌ | ✅ | ❌ | ❌ |
-| `/admin` | ❌ | ❌ | ✅ | ✅ |
-| `/vehicles/manage` | ❌ | ❌ | ✅ (no delete) | ✅ (full) |
-| `/rentals/manage` | ❌ | ❌ | ✅ | ✅ |
-| `/customers` | ❌ | ❌ | ✅ | ✅ |
-| `/maintenances` | ❌ | ❌ | ✅ | ✅ |
-| `/damages` | ❌ | ❌ | ✅ | ✅ |
-
-*Admin/Employee can access but will be redirected from customer-specific pages
-
----
-
-## 🎉 Success Criteria
-
-### ✅ Application is Working Correctly When:
-
-1. **Admin logs in** → Sees management interface
-2. **Employee logs in** → Sees limited management interface
-3. **Customer logs in** → Sees rental interface
-4. **Public user** → Can browse but must login to rent
-5. **No role confusion** → Each user sees only relevant features
-6. **Proper redirects** → Wrong role redirects to correct interface
-7. **Build successful** → No errors, no warnings
-8. **Navigation works** → All links go to correct pages
-9. **Authorization enforced** → Protected pages require proper role
-10. **UI is consistent** → AdminLayout for staff, CustomerLayout for customers
-
----
-
-## 📞 Need Help?
-
-### Documentation Files:
-- `APP_ARCHITECTURE_FIXED.md` - Complete architecture explanation
-- `MANAGE_VEHICLES_COMPLETE.md` - Manage Vehicles page details
-- `ROLE_BASED_LAYOUTS.md` - Layout system explanation
-
-### Check These First:
-1. Backend is running (http://localhost:5000)
-2. Frontend is running (http://localhost:5001)
-3. Browser cache is cleared
-4. Local storage is cleared
-5. No build errors
-
----
-
-**Status:** ✅ **READY FOR TESTING**  
-**Build:** ✅ **SUCCESSFUL**  
-**Architecture:** ✅ **FIXED**
-
-Start testing and enjoy the properly structured application! 🎊
+1. Test all scenarios listed above
+2. Verify data accuracy against database
+3. Check authorization for different user roles
+4. Test responsive design on mobile devices
+5. Monitor API performance with browser dev tools

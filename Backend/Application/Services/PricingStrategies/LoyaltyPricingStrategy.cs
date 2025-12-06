@@ -7,7 +7,7 @@ public class LoyaltyPricingStrategy : IPricingStrategy
 {
     public string StrategyName => "Loyalty Pricing";
 
-    public decimal CalculatePrice(Vehicle vehicle, DateTime startDate, DateTime endDate, Customer customer)
+    public decimal CalculatePrice(Vehicle vehicle, DateTime startDate, DateTime endDate, ApplicationUser user)
     {
         var days = (endDate - startDate).Days;
         if (days < 1) days = 1;
@@ -15,7 +15,7 @@ public class LoyaltyPricingStrategy : IPricingStrategy
         var basePrice = vehicle.DailyRate * days;
         
         // Apply discount based on customer tier
-        var discount = customer.Tier switch
+        var discount = user.Tier switch
         {
             CustomerTier.Silver => 0.05m,     // 5% discount
             CustomerTier.Gold => 0.10m,       // 10% discount

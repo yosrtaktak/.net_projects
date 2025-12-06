@@ -20,6 +20,9 @@ namespace Backend
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Configure Kestrel to use specific ports
+            builder.WebHost.UseUrls("https://localhost:5000", "http://localhost:5002");
+
             // Add DbContext
             builder.Services.AddDbContext<CarRentalDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -77,10 +80,14 @@ namespace Backend
             builder.Services.AddScoped<IRentalRepository, RentalRepository>();
             builder.Services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
             builder.Services.AddScoped<IVehicleDamageRepository, VehicleDamageRepository>();
+            builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+            // Commented out during Customer to ApplicationUser refactoring
+            // builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
             
             // Register services
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.AddScoped<IRentalService, RentalService>();
+            builder.Services.AddScoped<IReportService, ReportService>();
             
             // Register factories
             builder.Services.AddSingleton<IPricingStrategyFactory, PricingStrategyFactory>();
@@ -96,8 +103,15 @@ namespace Backend
                 });
             });
 
-            // Add controllers
-            builder.Services.AddControllers();
+            // Add controllers with JSON options to handle cycles
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    // Handle circular references
+                    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+                    // Ignore null values to reduce payload size
+                    options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+                });
 
             // Add Swagger/OpenAPI
             builder.Services.AddEndpointsApiExplorer();
@@ -146,8 +160,9 @@ namespace Backend
                 {
                     var context = services.GetRequiredService<CarRentalDbContext>();
                     
-                    // Apply migrations instead of EnsureCreated
-                    await context.Database.MigrateAsync();
+                    // Ensure database exists but don't apply migrations automatically
+                    // The migrations have been manually applied via SQL scripts
+                    await context.Database.EnsureCreatedAsync();
                     
                     // Seed Identity data (roles and users)
                     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();

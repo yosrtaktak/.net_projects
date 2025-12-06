@@ -10,4 +10,6 @@ public interface IMaintenanceRepository : IRepository<Maintenance>
     Task<IEnumerable<Maintenance>> GetOverdueMaintenancesAsync();
     Task<IEnumerable<Maintenance>> GetScheduledMaintenancesAsync(DateTime startDate, DateTime endDate);
     Task<Maintenance?> GetByIdWithVehicleAsync(int id);
+    Task<IEnumerable<Maintenance>> GetAllWithDetailsAsync();
+    Task<Maintenance?> GetByIdWithDetailsAsync(int id);
 }

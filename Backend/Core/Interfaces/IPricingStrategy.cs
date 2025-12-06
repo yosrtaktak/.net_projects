@@ -4,6 +4,6 @@ namespace Backend.Core.Interfaces;
 
 public interface IPricingStrategy
 {
-    decimal CalculatePrice(Vehicle vehicle, DateTime startDate, DateTime endDate, Customer customer);
+    decimal CalculatePrice(Vehicle vehicle, DateTime startDate, DateTime endDate, ApplicationUser user);
     string StrategyName { get; }
 }

@@ -4,7 +4,6 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
-@inject HttpClient HttpClient
 @using Frontend.Models
 @using Frontend.Services
 
@@ -211,19 +210,28 @@
         try
         {
             // If no repair cost provided, set a default based on severity
-            if (!damageModel.RepairCost.HasValue || damageModel.RepairCost == 0)
+            decimal repairCost = damageModel.RepairCost ?? damageModel.Severity switch
             {
-                damageModel.RepairCost = damageModel.Severity switch
-                {
-                    0 => 100m,  // Minor
-                    1 => 300m,  // Moderate
-                    2 => 800m,  // Major
-                    3 => 2000m, // Critical
-                    _ => 100m
-                };
-            }
+                0 => 100m,  // Minor
+                1 => 300m,  // Moderate
+                2 => 800m,  // Major
+                3 => 2000m, // Critical
+                _ => 100m
+            };
 
-            var result = await ApiServiceExtensions.CreateVehicleDamageAsync(ApiService, HttpClient, damageModel);
+            var request = new CreateVehicleDamageRequest
+            {
+                VehicleId = rental!.VehicleId,
+                RentalId = RentalId,
+                ReportedDate = DateTime.Now,
+                Description = damageModel.Description,
+                Severity = damageModel.Severity,
+                RepairCost = repairCost,
+                ImageUrl = damageModel.ImageUrl,
+                ReportedBy = await AuthService.GetUsernameAsync()
+            };
+
+            var result = await ApiService.CreateVehicleDamageAsync(request);
 
             if (result != null)
             {

@@ -1,206 +1,317 @@
 @page "/vehicles/add"
 @page "/vehicles/edit/{Id:int}"
+@layout AdminLayout
 @inject IApiService ApiService
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 @using Frontend.Models
 
 <PageTitle>@(Id.HasValue ? "Edit" : "Add") Vehicle - Car Rental System</PageTitle>
 
-<div class="container mt-4">
+<MudContainer MaxWidth="MaxWidth.Large">
     @if (!canManageVehicles)
     {
-        <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle me-2"></i>Access denied. Admin or Employee privileges required.
-        </div>
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-4">
+            <strong>Access Denied</strong> - Admin or Employee privileges required.
+        </MudAlert>
     }
     else
     {
-        <div class="row mb-4">
-            <div class="col-12">
-                <h1 class="display-6 fw-bold">
-                    <i class="bi bi-@(Id.HasValue ? "pencil-square" : "plus-circle") text-primary"></i> 
-                    @(Id.HasValue ? "Edit" : "Add New") Vehicle
-                </h1>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="/">Home</a></li>
-                        <li class="breadcrumb-item"><a href="/vehicles">Vehicles</a></li>
-                        <li class="breadcrumb-item active">@(Id.HasValue ? "Edit" : "Add")</li>
-                    </ol>
-                </nav>
-            </div>
-        </div>
+        <MudStack Spacing="4">
+            <!-- Header with Breadcrumb -->
+            <MudStack Spacing="2">
+                <MudBreadcrumbs Items="_breadcrumbs"></MudBreadcrumbs>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h4">
+                            <MudIcon Icon="@(Id.HasValue ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" Class="mr-2" />
+                            <strong>@(Id.HasValue ? "Edit" : "Add New") Vehicle</strong>
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @(Id.HasValue ? "Update vehicle information and specifications" : "Add a new vehicle to your fleet")
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+            </MudStack>
 
-        @if (isLoading && Id.HasValue)
-        {
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        }
-        else
-        {
-            <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <EditForm Model="@vehicleModel" OnValidSubmit="HandleSubmit">
-                                <DataAnnotationsValidator />
+            @if (isLoading && Id.HasValue)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else
+            {
+                <EditForm Model="@vehicleModel" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
 
-                                @if (!string.IsNullOrEmpty(errorMessage))
-                                {
-                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                        <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
-                                        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
-                                    </div>
-                                }
+                    <MudPaper Elevation="2" Class="pa-6">
+                        <MudStack Spacing="4">
+                            <!-- Basic Information Section -->
+                            <MudStack Spacing="3">
+                                <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="mr-2" />
+                                    Basic Information
+                                </MudText>
+                                <MudDivider />
+                                
+                                <MudGrid Spacing="3">
+                                    <MudItem xs="12" sm="6">
+                                        <MudTextField T="string" 
+                                                      @bind-Value="vehicleModel.Brand" 
+                                                      Label="Brand" 
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      RequiredError="Brand is required"
+                                                      Placeholder="e.g., Toyota, BMW, Mercedes" />
+                                    </MudItem>
 
-                                @if (successMessage)
-                                {
-                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                        <i class="bi bi-check-circle me-2"></i>Vehicle saved successfully!
-                                    </div>
-                                }
+                                    <MudItem xs="12" sm="6">
+                                        <MudTextField T="string" 
+                                                      @bind-Value="vehicleModel.Model" 
+                                                      Label="Model" 
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      RequiredError="Model is required"
+                                                      Placeholder="e.g., Camry, X5, E-Class" />
+                                    </MudItem>
 
-                                <!-- Basic Information -->
-                                <div class="mb-4">
-                                    <h5 class="border-bottom pb-2 mb-3">Basic Information</h5>
-                                    
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="brand" class="form-label">Brand <span class="text-danger">*</span></label>
-                                            <InputText id="brand" @bind-Value="vehicleModel.Brand" class="form-control" placeholder="e.g., Toyota, BMW" />
-                                            <ValidationMessage For="@(() => vehicleModel.Brand)" />
-                                        </div>
+                                    <MudItem xs="12" sm="6">
+                                        <MudTextField T="string" 
+                                                      @bind-Value="vehicleModel.RegistrationNumber" 
+                                                      Label="Registration Number" 
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      RequiredError="Registration number is required"
+                                                      Placeholder="e.g., ABC-1234" />
+                                    </MudItem>
 
-                                        <div class="col-md-6">
-                                            <label for="model" class="form-label">Model <span class="text-danger">*</span></label>
-                                            <InputText id="model" @bind-Value="vehicleModel.Model" class="form-control" placeholder="e.g., Camry, X5" />
-                                            <ValidationMessage For="@(() => vehicleModel.Model)" />
-                                        </div>
+                                    <MudItem xs="12" sm="6">
+                                        <MudNumericField T="int" 
+                                                         @bind-Value="vehicleModel.Year" 
+                                                         Label="Year" 
+                                                         Variant="Variant.Outlined"
+                                                         Min="1900" 
+                                                         Max="2099"
+                                                         Required="true" />
+                                    </MudItem>
+                                </MudGrid>
+                            </MudStack>
 
-                                        <div class="col-md-6">
-                                            <label for="registration" class="form-label">Registration Number <span class="text-danger">*</span></label>
-                                            <InputText id="registration" @bind-Value="vehicleModel.RegistrationNumber" class="form-control" placeholder="e.g., ABC-1234" />
-                                            <ValidationMessage For="@(() => vehicleModel.RegistrationNumber)" />
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label for="year" class="form-label">Year <span class="text-danger">*</span></label>
-                                            <InputNumber id="year" @bind-Value="vehicleModel.Year" class="form-control" min="1900" max="2099" />
-                                            <ValidationMessage For="@(() => vehicleModel.Year)" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Category & Pricing -->
-                                <div class="mb-4">
-                                    <h5 class="border-bottom pb-2 mb-3">Category & Pricing</h5>
-                                    
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
-                                            <InputSelect id="category" @bind-Value="vehicleModel.Category" class="form-select">
-                                                @foreach (var category in Enum.GetValues<VehicleCategory>())
-                                                {
-                                                    <option value="@category">@category</option>
-                                                }
-                                            </InputSelect>
-                                            <ValidationMessage For="@(() => vehicleModel.Category)" />
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label for="dailyRate" class="form-label">Daily Rate ($) <span class="text-danger">*</span></label>
-                                            <InputNumber id="dailyRate" @bind-Value="vehicleModel.DailyRate" class="form-control" min="0" step="0.01" />
-                                            <ValidationMessage For="@(() => vehicleModel.DailyRate)" />
-                                        </div>
-
-                                        @if (Id.HasValue)
+                            <!-- Category & Pricing Section -->
+                            <MudStack Spacing="3">
+                                <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" Class="mr-2" />
+                                    Category & Pricing
+                                </MudText>
+                                <MudDivider />
+                                
+                                <MudGrid Spacing="3">
+                                    <MudItem xs="12" sm="6">
+                                        @if (isLoadingCategories)
                                         {
-                                            <div class="col-md-12">
-                                                <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
-                                                <InputSelect id="status" @bind-Value="vehicleModel.Status" class="form-select">
-                                                    @foreach (var status in Enum.GetValues<VehicleStatus>())
-                                                    {
-                                                        <option value="@status">@status</option>
-                                                    }
-                                                </InputSelect>
-                                                <ValidationMessage For="@(() => vehicleModel.Status)" />
-                                            </div>
+                                            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="56px" />
                                         }
-                                    </div>
-                                </div>
-
-                                <!-- Specifications -->
-                                <div class="mb-4">
-                                    <h5 class="border-bottom pb-2 mb-3">Specifications</h5>
-                                    
-                                    <div class="row g-3">
-                                        <div class="col-md-4">
-                                            <label for="fuelType" class="form-label">Fuel Type</label>
-                                            <InputText id="fuelType" @bind-Value="vehicleModel.FuelType" class="form-control" placeholder="e.g., Gasoline, Diesel" />
-                                        </div>
-
-                                        <div class="col-md-4">
-                                            <label for="seatingCapacity" class="form-label">Seating Capacity <span class="text-danger">*</span></label>
-                                            <InputNumber id="seatingCapacity" @bind-Value="vehicleModel.SeatingCapacity" class="form-control" min="1" max="50" />
-                                            <ValidationMessage For="@(() => vehicleModel.SeatingCapacity)" />
-                                        </div>
-
-                                        <div class="col-md-4">
-                                            <label for="mileage" class="form-label">Mileage (km) <span class="text-danger">*</span></label>
-                                            <InputNumber id="mileage" @bind-Value="vehicleModel.Mileage" class="form-control" min="0" />
-                                            <ValidationMessage For="@(() => vehicleModel.Mileage)" />
-                                        </div>
-
-                                        <div class="col-md-12">
-                                            <label for="imageUrl" class="form-label">Image URL</label>
-                                            <InputText id="imageUrl" @bind-Value="vehicleModel.ImageUrl" class="form-control" placeholder="https://..." />
-                                            <small class="form-text text-muted">Enter a valid image URL for the vehicle photo</small>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Form Actions -->
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">
-                                        <i class="bi bi-x-circle me-2"></i>Cancel
-                                    </button>
-                                    
-                                    <button type="submit" class="btn btn-primary" disabled="@isSaving">
-                                        @if (isSaving)
+                                        else if (!dbCategories.Any())
                                         {
-                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                            <span>Saving...</span>
+                                            <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+                                                <MudText Typo="Typo.body2">
+                                                    No categories found. <MudLink Href="/admin/categories" Color="Color.Primary"><strong>Create categories first</strong></MudLink>
+                                                </MudText>
+                                            </MudAlert>
                                         }
                                         else
                                         {
-                                            <i class="bi bi-check-circle me-2"></i>
-                                            <span>@(Id.HasValue ? "Update" : "Create") Vehicle</span>
+                                            <MudSelect T="VehicleCategory" 
+                                                       @bind-Value="vehicleModel.Category" 
+                                                       Label="Category" 
+                                                       Variant="Variant.Outlined"
+                                                       Required="true"
+                                                       AnchorOrigin="Origin.BottomCenter"
+                                                       HelperText="@GetCategoryHelperText()"
+                                                       AdornmentIcon="@Icons.Material.Filled.Category"
+                                                       Adornment="Adornment.Start">
+                                                @foreach (var dbCategory in dbCategories.Where(c => c.IsActive).OrderBy(c => c.DisplayOrder))
+                                                {
+                                                    var enumValue = ParseCategoryName(dbCategory.Name);
+                                                    if (enumValue.HasValue)
+                                                    {
+                                                        <MudSelectItem T="VehicleCategory" Value="@enumValue.Value">
+                                                            <div style="padding: 8px 0;">
+                                                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="width: 100%;">
+                                                                    <MudIcon Icon="@Icons.Material.Filled.LocalOffer" 
+                                                                             Size="Size.Medium" 
+                                                                             Color="@GetCategoryColor(enumValue.Value)" />
+                                                                    <MudStack Spacing="0" Style="flex: 1;">
+                                                                        <MudText Typo="Typo.body1" Style="font-weight: 500;">
+                                                                            @dbCategory.Name
+                                                                        </MudText>
+                                                                        @if (!string.IsNullOrEmpty(dbCategory.Description))
+                                                                        {
+                                                                            <MudText Typo="Typo.caption" 
+                                                                                     Color="Color.Secondary" 
+                                                                                     Style="line-height: 1.4; margin-top: 2px;">
+                                                                                @dbCategory.Description
+                                                                            </MudText>
+                                                                        }
+                                                                    </MudStack>
+                                                                </MudStack>
+                                                            </div>
+                                                        </MudSelectItem>
+                                                    }
+                                                }
+                                            </MudSelect>
                                         }
-                                    </button>
-                                </div>
-                            </EditForm>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
+                                    </MudItem>
+
+                                    <MudItem xs="12" sm="6">
+                                        <MudNumericField T="decimal" 
+                                                         @bind-Value="vehicleModel.DailyRate" 
+                                                         Label="Daily Rate" 
+                                                         Variant="Variant.Outlined"
+                                                         Min="0m" 
+                                                         Step="0.01m"
+                                                         Adornment="Adornment.Start" 
+                                                         AdornmentIcon="@Icons.Material.Filled.AttachMoney"
+                                                         Required="true" />
+                                    </MudItem>
+
+                                    @if (Id.HasValue)
+                                    {
+                                        <MudItem xs="12">
+                                            <MudSelect T="VehicleStatus" 
+                                                       @bind-Value="vehicleModel.Status" 
+                                                       Label="Status" 
+                                                       Variant="Variant.Outlined"
+                                                       Required="true">
+                                                @foreach (var status in Enum.GetValues<VehicleStatus>())
+                                                {
+                                                    <MudSelectItem T="VehicleStatus" Value="@status">
+                                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                                            <MudIcon Icon="@GetStatusIcon(status)" Size="Size.Small" Color="@GetStatusColor(status)" />
+                                                            <MudText>@status</MudText>
+                                                        </MudStack>
+                                                    </MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </MudItem>
+                                    }
+                                </MudGrid>
+                            </MudStack>
+
+                            <!-- Specifications Section -->
+                            <MudStack Spacing="3">
+                                <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small" Class="mr-2" />
+                                    Specifications
+                                </MudText>
+                                <MudDivider />
+                                
+                                <MudGrid Spacing="3">
+                                    <MudItem xs="12" sm="4">
+                                        <MudTextField T="string" 
+                                                      @bind-Value="vehicleModel.FuelType" 
+                                                      Label="Fuel Type" 
+                                                      Variant="Variant.Outlined"
+                                                      Placeholder="e.g., Gasoline, Diesel, Electric"
+                                                      Adornment="Adornment.Start"
+                                                      AdornmentIcon="@Icons.Material.Filled.LocalGasStation" />
+                                    </MudItem>
+
+                                    <MudItem xs="12" sm="4">
+                                        <MudNumericField T="int" 
+                                                         @bind-Value="vehicleModel.SeatingCapacity" 
+                                                         Label="Seating Capacity" 
+                                                         Variant="Variant.Outlined"
+                                                         Min="1" 
+                                                         Max="50"
+                                                         Required="true"
+                                                         Adornment="Adornment.Start"
+                                                         AdornmentIcon="@Icons.Material.Filled.People" />
+                                    </MudItem>
+
+                                    <MudItem xs="12" sm="4">
+                                        <MudNumericField T="int" 
+                                                         @bind-Value="vehicleModel.Mileage" 
+                                                         Label="Mileage (km)" 
+                                                         Variant="Variant.Outlined"
+                                                         Min="0"
+                                                         Required="true"
+                                                         Adornment="Adornment.Start"
+                                                         AdornmentIcon="@Icons.Material.Filled.Speed" />
+                                    </MudItem>
+
+                                    <MudItem xs="12">
+                                        <MudTextField T="string" 
+                                                      @bind-Value="vehicleModel.ImageUrl" 
+                                                      Label="Image URL" 
+                                                      Variant="Variant.Outlined"
+                                                      Placeholder="https://example.com/image.jpg"
+                                                      Adornment="Adornment.Start"
+                                                      AdornmentIcon="@Icons.Material.Filled.Image"
+                                                      HelperText="Enter a valid URL for the vehicle image" />
+                                    </MudItem>
+
+                                    @if (!string.IsNullOrEmpty(vehicleModel.ImageUrl))
+                                    {
+                                        <MudItem xs="12">
+                                            <MudText Typo="Typo.body2" Color="Color.Secondary" GutterBottom="true">Image Preview:</MudText>
+                                            <MudImage Src="@vehicleModel.ImageUrl" 
+                                                      Alt="Vehicle Preview" 
+                                                      Elevation="2" 
+                                                      Class="rounded-lg" 
+                                                      ObjectFit="ObjectFit.Cover"
+                                                      Height="200"
+                                                      Width="300" />
+                                        </MudItem>
+                                    }
+                                </MudGrid>
+                            </MudStack>
+
+                            <!-- Form Actions -->
+                            <MudDivider />
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <MudButton Variant="Variant.Outlined" 
+                                           Color="Color.Default" 
+                                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                                           OnClick="Cancel">
+                                    Back to Vehicles
+                                </MudButton>
+                                
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="Color.Primary" 
+                                           ButtonType="ButtonType.Submit"
+                                           StartIcon="@Icons.Material.Filled.Save"
+                                           Disabled="@isSaving">
+                                    @if (isSaving)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                        <span>Saving...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@(Id.HasValue ? "Update" : "Create") Vehicle</span>
+                                    }
+                                </MudButton>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </EditForm>
+            }
+        </MudStack>
     }
-</div>
+</MudContainer>
 
 @code {
     [Parameter]
     public int? Id { get; set; }
 
     private VehicleFormModel vehicleModel = new();
+    private List<CategoryModel> dbCategories = new();
     private bool canManageVehicles = false;
     private bool isLoading = false;
+    private bool isLoadingCategories = false;
     private bool isSaving = false;
-    private bool successMessage = false;
-    private string? errorMessage;
+    private List<BreadcrumbItem> _breadcrumbs = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -212,6 +323,9 @@
             NavigationManager.NavigateTo("/");
             return;
         }
+
+        SetupBreadcrumbs();
+        await LoadCategories();
 
         if (Id.HasValue)
         {
@@ -226,43 +340,118 @@
         }
     }
 
+    private void SetupBreadcrumbs()
+    {
+        _breadcrumbs = new List<BreadcrumbItem>
+        {
+            new BreadcrumbItem("Dashboard", href: "/admin", icon: Icons.Material.Filled.Dashboard),
+            new BreadcrumbItem("Vehicles", href: "/vehicles/manage", icon: Icons.Material.Filled.DirectionsCar),
+            new BreadcrumbItem(Id.HasValue ? "Edit" : "Add", href: null, disabled: true)
+        };
+    }
+
+    private async Task LoadCategories()
+    {
+        isLoadingCategories = true;
+        try
+        {
+            dbCategories = await ApiService.GetCategoriesAsync(activeOnly: true);
+            
+            if (!dbCategories.Any())
+            {
+                Snackbar.Add("No active categories found. Please create categories first.", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading categories: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoadingCategories = false;
+        }
+    }
+
+    private VehicleCategory? ParseCategoryName(string categoryName)
+    {
+        // Map database category names to enum values
+        return categoryName.ToLower() switch
+        {
+            "economy" => VehicleCategory.Economy,
+            "compact" => VehicleCategory.Compact,
+            "midsize" => VehicleCategory.Midsize,
+            "suv" => VehicleCategory.SUV,
+            "luxury" => VehicleCategory.Luxury,
+            "van" => VehicleCategory.Van,
+            "sports" => VehicleCategory.Sports,
+            _ => null
+        };
+    }
+
+    private string GetCategoryHelperText()
+    {
+        var selectedCategory = dbCategories.FirstOrDefault(c => 
+            ParseCategoryName(c.Name) == vehicleModel.Category);
+        
+        if (selectedCategory != null)
+        {
+            return selectedCategory.Description ?? "Select a category for this vehicle";
+        }
+        
+        return "Select a category for this vehicle";
+    }
+
     private async Task LoadVehicle()
     {
         if (!Id.HasValue) return;
         
         isLoading = true;
-        var vehicle = await ApiService.GetVehicleAsync(Id.Value);
-        
-        if (vehicle != null)
+        try
         {
-            vehicleModel = new VehicleFormModel
+            var vehicle = await ApiService.GetVehicleAsync(Id.Value);
+            
+            if (vehicle != null)
             {
-                Brand = vehicle.Brand,
-                Model = vehicle.Model,
-                RegistrationNumber = vehicle.RegistrationNumber,
-                Year = vehicle.Year,
-                Category = vehicle.Category,
-                DailyRate = vehicle.DailyRate,
-                Status = vehicle.Status,
-                ImageUrl = vehicle.ImageUrl,
-                Mileage = vehicle.Mileage,
-                FuelType = vehicle.FuelType,
-                SeatingCapacity = vehicle.SeatingCapacity
-            };
+                vehicleModel = new VehicleFormModel
+                {
+                    Brand = vehicle.Brand,
+                    Model = vehicle.Model,
+                    RegistrationNumber = vehicle.RegistrationNumber,
+                    Year = vehicle.Year,
+                    Category = vehicle.Category,
+                    DailyRate = vehicle.DailyRate,
+                    Status = vehicle.Status,
+                    ImageUrl = vehicle.ImageUrl,
+                    Mileage = vehicle.Mileage,
+                    FuelType = vehicle.FuelType,
+                    SeatingCapacity = vehicle.SeatingCapacity
+                };
+            }
+            else
+            {
+                Snackbar.Add("Vehicle not found.", Severity.Error);
+                NavigationManager.NavigateTo("/vehicles/manage");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            errorMessage = "Vehicle not found.";
+            Snackbar.Add($"Error loading vehicle: {ex.Message}", Severity.Error);
         }
-        
-        isLoading = false;
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private async Task HandleSubmit()
     {
+        if (!dbCategories.Any())
+        {
+            Snackbar.Add("Cannot create vehicle without categories. Please create categories first.", Severity.Error);
+            return;
+        }
+
         isSaving = true;
-        errorMessage = null;
-        successMessage = false;
 
         try
         {
@@ -289,13 +478,13 @@
                 
                 if (success)
                 {
-                    successMessage = true;
-                    await Task.Delay(1500);
+                    Snackbar.Add($"{vehicleModel.Brand} {vehicleModel.Model} updated successfully!", Severity.Success);
+                    await Task.Delay(500);
                     NavigationManager.NavigateTo("/vehicles/manage");
                 }
                 else
                 {
-                    errorMessage = "Failed to update vehicle. Please try again.";
+                    Snackbar.Add("Failed to update vehicle. Please try again.", Severity.Error);
                 }
             }
             else
@@ -319,19 +508,19 @@
                 
                 if (result != null)
                 {
-                    successMessage = true;
-                    await Task.Delay(1500);
+                    Snackbar.Add($"{vehicleModel.Brand} {vehicleModel.Model} created successfully!", Severity.Success);
+                    await Task.Delay(500);
                     NavigationManager.NavigateTo("/vehicles/manage");
                 }
                 else
                 {
-                    errorMessage = "Failed to create vehicle. Please check all fields and try again.";
+                    Snackbar.Add("Failed to create vehicle. Please check all fields and try again.", Severity.Error);
                 }
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"An error occurred: {ex.Message}";
+            Snackbar.Add($"An error occurred: {ex.Message}", Severity.Error);
         }
         finally
         {
@@ -342,6 +531,47 @@
     private void Cancel()
     {
         NavigationManager.NavigateTo("/vehicles/manage");
+    }
+
+    private Color GetStatusColor(VehicleStatus status)
+    {
+        return status switch
+        {
+            VehicleStatus.Available => Color.Success,
+            VehicleStatus.Reserved => Color.Info,
+            VehicleStatus.Rented => Color.Warning,
+            VehicleStatus.Maintenance => Color.Warning,
+            VehicleStatus.Retired => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private string GetStatusIcon(VehicleStatus status)
+    {
+        return status switch
+        {
+            VehicleStatus.Available => Icons.Material.Filled.CheckCircle,
+            VehicleStatus.Reserved => Icons.Material.Filled.EventNote,
+            VehicleStatus.Rented => Icons.Material.Filled.DriveEta,
+            VehicleStatus.Maintenance => Icons.Material.Filled.Build,
+            VehicleStatus.Retired => Icons.Material.Filled.Cancel,
+            _ => Icons.Material.Filled.Help
+        };
+    }
+
+    private Color GetCategoryColor(VehicleCategory category)
+    {
+        return category switch
+        {
+            VehicleCategory.Economy => Color.Info,
+            VehicleCategory.Compact => Color.Primary,
+            VehicleCategory.Midsize => Color.Success,
+            VehicleCategory.SUV => Color.Success,
+            VehicleCategory.Luxury => Color.Warning,
+            VehicleCategory.Sports => Color.Error,
+            VehicleCategory.Van => Color.Secondary,
+            _ => Color.Default
+        };
     }
 
     public class VehicleFormModel

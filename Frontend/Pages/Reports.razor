@@ -1,0 +1,323 @@
+@page "/reports"
+@layout AdminLayout
+@inject IApiService ApiService
+@inject IAuthService AuthService
+@inject ISnackbar Snackbar
+@using Frontend.Models
+@using Frontend.Services
+
+<PageTitle>Reports & Analytics - Car Rental System</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
+    @if (isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (!isAuthorized)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-4">
+            <strong>Access Denied</strong> - Admin or Employee privileges required.
+        </MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <!-- Header -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4">
+                        <MudIcon Icon="@Icons.Material.Filled.Assessment" Color="Color.Primary" Class="mr-2" />
+                        <strong>Reports & Analytics</strong>
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Comprehensive insights and performance metrics
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="LoadReports">
+                    Refresh Data
+                </MudButton>
+            </MudStack>
+
+            @if (isLoadingReports)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (dashboardReport != null)
+            {
+                <!-- Key Metrics Cards -->
+                <MudGrid>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" />
+                                        <MudText Typo="Typo.h4" Color="Color.Success"><strong>$@dashboardReport.TotalRevenue.ToString("N0")</strong></MudText>
+                                    </MudStack>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Total Revenue</MudText>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Info" Size="Size.Large" />
+                                        <MudText Typo="Typo.h4" Color="Color.Info"><strong>$@dashboardReport.MonthlyRevenue.ToString("N0")</strong></MudText>
+                                    </MudStack>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Monthly Revenue</MudText>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" Size="Size.Large" />
+                                        <MudText Typo="Typo.h4" Color="Color.Primary"><strong>@dashboardReport.TotalVehicles</strong></MudText>
+                                    </MudStack>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Total Vehicles</MudText>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudIcon Icon="@Icons.Material.Filled.EventNote" Color="Color.Warning" Size="Size.Large" />
+                                        <MudText Typo="Typo.h4" Color="Color.Warning"><strong>@dashboardReport.TotalRentals</strong></MudText>
+                                    </MudStack>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Total Rentals</MudText>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- Rental Status Overview -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-4"><strong>Rental Status Overview</strong></MudText>
+                    <MudGrid>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Active</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Success"><strong>@dashboardReport.ActiveRentals</strong></MudText>
+                            </MudStack>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Reserved</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Info"><strong>@dashboardReport.ReservedRentals</strong></MudText>
+                            </MudStack>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Completed</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Default"><strong>@dashboardReport.CompletedRentals</strong></MudText>
+                            </MudStack>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Cancelled</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Error"><strong>@dashboardReport.CancelledRentals</strong></MudText>
+                            </MudStack>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Vehicles by Category -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-4"><strong>Vehicles by Category</strong></MudText>
+                    <MudSimpleTable Hover="true">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Total</th>
+                                <th>Available</th>
+                                <th>Rented</th>
+                                <th>Availability Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var category in dashboardReport.VehiclesByCategory)
+                            {
+                                var availabilityRate = category.Count > 0 ? (decimal)category.Available / category.Count * 100 : 0;
+                                <tr>
+                                    <td><strong>@category.Category</strong></td>
+                                    <td>@category.Count</td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="Color.Success">@category.Available</MudChip></td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">@category.Rented</MudChip></td>
+                                    <td>
+                                        <MudProgressLinear Value="@((double)availabilityRate)" 
+                                                          Color="@(availabilityRate > 50 ? Color.Success : Color.Warning)" 
+                                                          Size="Size.Small" 
+                                                          Class="my-2" />
+                                        <MudText Typo="Typo.caption">@availabilityRate.ToString("N1")%</MudText>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+
+                <!-- Top Rented Vehicles -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-4"><strong>Top 5 Rented Vehicles</strong></MudText>
+                    <MudSimpleTable Hover="true">
+                        <thead>
+                            <tr>
+                                <th>Vehicle</th>
+                                <th>Total Rentals</th>
+                                <th>Total Revenue</th>
+                                <th>Avg. Revenue per Rental</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var vehicle in dashboardReport.TopRentedVehicles)
+                            {
+                                var avgRevenue = vehicle.RentalCount > 0 ? vehicle.TotalRevenue / vehicle.RentalCount : 0;
+                                <tr>
+                                    <td><strong>@vehicle.Brand @vehicle.Model</strong></td>
+                                    <td>@vehicle.RentalCount</td>
+                                    <td><MudText Color="Color.Success"><strong>$@vehicle.TotalRevenue.ToString("N2")</strong></MudText></td>
+                                    <td>$@avgRevenue.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+
+                <!-- Revenue by Month Chart -->
+                @if (dashboardReport.RevenueByMonth.Any())
+                {
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-4"><strong>Revenue Trend (Last 6 Months)</strong></MudText>
+                        <MudSimpleTable>
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Revenue</th>
+                                    <th>Rentals</th>
+                                    <th>Avg. per Rental</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var month in dashboardReport.RevenueByMonth)
+                                {
+                                    var avgPerRental = month.RentalCount > 0 ? month.Revenue / month.RentalCount : 0;
+                                    <tr>
+                                        <td><strong>@month.Month</strong></td>
+                                        <td><MudText Color="Color.Success">$@month.Revenue.ToString("N2")</MudText></td>
+                                        <td>@month.RentalCount</td>
+                                        <td>$@avgPerRental.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    </MudPaper>
+                }
+
+                <!-- Recent Rentals -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-4"><strong>Recent Rentals</strong></MudText>
+                    <MudSimpleTable Hover="true">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Customer</th>
+                                <th>Vehicle</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Status</th>
+                                <th>Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var rental in dashboardReport.RecentRentals)
+                            {
+                                <tr>
+                                    <td>#@rental.Id</td>
+                                    <td>@rental.CustomerName</td>
+                                    <td><strong>@rental.VehicleName</strong></td>
+                                    <td>@rental.StartDate.ToString("MMM dd, yyyy")</td>
+                                    <td>@rental.EndDate.ToString("MMM dd, yyyy")</td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="@GetStatusColor(rental.Status)">@rental.Status</MudChip></td>
+                                    <td><strong>$@rental.TotalCost.ToString("N2")</strong></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+            }
+        </MudStack>
+    }
+</MudContainer>
+
+@code {
+    private bool isLoading = true;
+    private bool isLoadingReports = false;
+    private bool isAuthorized = false;
+    private DashboardReport? dashboardReport;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthorization();
+        if (isAuthorized)
+        {
+            await LoadReports();
+        }
+        isLoading = false;
+    }
+
+    private async Task CheckAuthorization()
+    {
+        var role = await AuthService.GetRoleAsync();
+        isAuthorized = role == "Admin" || role == "Employee";
+    }
+
+    private async Task LoadReports()
+    {
+        isLoadingReports = true;
+        try
+        {
+            dashboardReport = await ApiService.GetDashboardReportAsync();
+            
+            if (dashboardReport == null)
+            {
+                Snackbar.Add("Failed to load dashboard reports", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading reports: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoadingReports = false;
+        }
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Reserved" => Color.Info,
+            "Active" => Color.Success,
+            "Completed" => Color.Default,
+            "Cancelled" => Color.Error,
+            _ => Color.Default
+        };
+    }
+}

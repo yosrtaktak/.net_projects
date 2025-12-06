@@ -1,6 +1,5 @@
 namespace Frontend.Models;
 
-// Damage Enums
 public enum DamageSeverity
 {
     Minor,      // Scratches, small dents
@@ -18,6 +17,23 @@ public enum DamageStatus
 }
 
 // Vehicle Damage DTOs
+public class VehicleDamage
+{
+    public int Id { get; set; }
+    public int VehicleId { get; set; }
+    public Vehicle? Vehicle { get; set; }
+    public int? RentalId { get; set; }
+    public Rental? Rental { get; set; }
+    public DateTime ReportedDate { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public DamageSeverity Severity { get; set; }
+    public decimal RepairCost { get; set; }
+    public DateTime? RepairedDate { get; set; }
+    public string? ReportedBy { get; set; }
+    public string? ImageUrl { get; set; }
+    public DamageStatus Status { get; set; }
+}
+
 public class VehicleDamageDto
 {
     public int Id { get; set; }
@@ -40,6 +56,18 @@ public class CreateVehicleDamageDto
     public int VehicleId { get; set; }
     public int? RentalId { get; set; }
     public DateTime ReportedDate { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public int Severity { get; set; }
+    public decimal? RepairCost { get; set; }
+    public string? ReportedBy { get; set; }
+    public string? ImageUrl { get; set; }
+}
+
+public class CreateVehicleDamageRequest
+{
+    public int VehicleId { get; set; }
+    public int? RentalId { get; set; }
+    public DateTime ReportedDate { get; set; } = DateTime.Now;
     public string Description { get; set; } = string.Empty;
     public int Severity { get; set; }
     public decimal RepairCost { get; set; }

@@ -7,7 +7,7 @@ public class WeekendPricingStrategy : IPricingStrategy
 {
     public string StrategyName => "Weekend Pricing";
 
-    public decimal CalculatePrice(Vehicle vehicle, DateTime startDate, DateTime endDate, Customer customer)
+    public decimal CalculatePrice(Vehicle vehicle, DateTime startDate, DateTime endDate, ApplicationUser user)
     {
         var days = (endDate - startDate).Days;
         if (days < 1) days = 1;

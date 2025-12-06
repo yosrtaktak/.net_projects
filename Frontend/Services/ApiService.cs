@@ -15,10 +15,23 @@ public interface IApiService
     Task<bool> DeleteVehicleAsync(int id);
     Task<VehicleHistoryResponse?> GetVehicleHistoryAsync(int id);
     
-    // Customers
+    // Customers / Users
     Task<List<Customer>> GetCustomersAsync();
     Task<Customer?> GetCustomerAsync(int id);
+    Task<Customer?> GetUserByIdAsync(string id);
+    Task<Customer?> GetCurrentCustomerAsync(); // Uses /api/users/me
+    Task<Customer?> GetMyProfileAsync();
+    Task<List<Rental>> GetMyRentalsAsync();
+    Task<List<VehicleDamage>> GetMyDamagesAsync();
+    Task<bool> UpdateCustomerAsync(string id, UpdateCustomerModel model);
+    Task<bool> UpdateProfileAsync(UpdateProfileModel model);
     
+    // Employee Management
+    Task<List<EmployeeModel>> GetEmployeesAsync();
+    Task<EmployeeModel?> CreateEmployeeAsync(CreateEmployeeModel model);
+    Task<bool> UpdateUserRoleAsync(string id, string role);
+    Task<bool> DeleteUserAsync(string id);
+
     // Rentals
     Task<List<Rental>> GetRentalsAsync();
     Task<Rental?> GetRentalAsync(int id);
@@ -27,6 +40,28 @@ public interface IApiService
     Task<PriceCalculationResponse?> CalculatePriceAsync(CalculatePriceRequest request);
     Task<bool> CompleteRentalAsync(int id);
     Task<bool> CancelRentalAsync(int id);
+    Task<List<Rental>> GetRentalsForManagementAsync(string? status = null, DateTime? startDate = null, DateTime? endDate = null, int? vehicleId = null, string? userId = null);
+    Task<bool> UpdateRentalStatusAsync(int id, string status);
+
+    // Vehicle Damages
+    Task<List<VehicleDamage>> GetVehicleDamagesAsync();
+    Task<VehicleDamage?> GetVehicleDamageAsync(int id);
+    Task<List<VehicleDamage>> GetDamagesByRentalAsync(int rentalId);
+    Task<VehicleDamage?> CreateVehicleDamageAsync(CreateVehicleDamageRequest request);
+
+    // Reports
+    Task<DashboardReport?> GetDashboardReportAsync();
+    Task<RentalStatistics?> GetRentalStatisticsAsync(DateTime? startDate = null, DateTime? endDate = null);
+    Task<List<VehicleUtilization>> GetVehicleUtilizationReportAsync(DateTime? startDate = null, DateTime? endDate = null);
+    Task<List<MonthlyRevenue>> GetMonthlyRevenueReportAsync(int months = 12);
+    
+    // Categories
+    Task<List<CategoryModel>> GetCategoriesAsync(bool activeOnly = false);
+    Task<CategoryModel?> GetCategoryAsync(int id);
+    Task<CategoryModel?> CreateCategoryAsync(CreateCategoryModel model);
+    Task<CategoryModel?> UpdateCategoryAsync(int id, UpdateCategoryModel model);
+    Task<bool> DeleteCategoryAsync(int id);
+    Task<CategoryModel?> ToggleCategoryActiveAsync(int id);
 }
 
 public class ApiService : IApiService
@@ -156,12 +191,12 @@ public class ApiService : IApiService
         }
     }
 
-    // Customers
+    // Customers - Updated to use /api/users endpoints
     public async Task<List<Customer>> GetCustomersAsync()
     {
         try
         {
-            var customers = await _httpClient.GetFromJsonAsync<List<Customer>>("api/customers");
+            var customers = await _httpClient.GetFromJsonAsync<List<Customer>>("api/users/customers");
             return customers ?? new List<Customer>();
         }
         catch (Exception ex)
@@ -175,12 +210,81 @@ public class ApiService : IApiService
     {
         try
         {
+            // Note: This endpoint may need backend support for int id lookup
+            // For now, keeping for backward compatibility
             return await _httpClient.GetFromJsonAsync<Customer>($"api/customers/{id}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error fetching customer: {ex.Message}");
             return null;
+        }
+    }
+
+    public async Task<Customer?> GetUserByIdAsync(string id)
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<Customer>($"api/users/{id}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching user by id: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<Customer?> GetCurrentCustomerAsync()
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<Customer>("api/users/me");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching current customer: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<Customer?> GetMyProfileAsync()
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<Customer>("api/users/me");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching my profile: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<bool> UpdateCustomerAsync(string id, UpdateCustomerModel model)
+    {
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/users/{id}/customer", model);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating customer: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateProfileAsync(UpdateProfileModel model)
+    {
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync("api/users/me", model);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating profile: {ex.Message}");
+            return false;
         }
     }
 
@@ -291,6 +395,388 @@ public class ApiService : IApiService
         {
             Console.WriteLine($"Error cancelling rental: {ex.Message}");
             return false;
+        }
+    }
+
+    public async Task<List<Rental>> GetRentalsForManagementAsync(
+        string? status = null, 
+        DateTime? startDate = null, 
+        DateTime? endDate = null, 
+        int? vehicleId = null, 
+        string? userId = null)
+    {
+        try
+        {
+            var queryParams = new List<string>();
+            
+            if (!string.IsNullOrEmpty(status))
+                queryParams.Add($"status={status}");
+            if (startDate.HasValue)
+                queryParams.Add($"startDate={startDate.Value:yyyy-MM-dd}");
+            if (endDate.HasValue)
+                queryParams.Add($"endDate={endDate.Value:yyyy-MM-dd}");
+            if (vehicleId.HasValue)
+                queryParams.Add($"vehicleId={vehicleId.Value}");
+            if (!string.IsNullOrEmpty(userId))
+                queryParams.Add($"userId={userId}");
+
+            var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+            var rentals = await _httpClient.GetFromJsonAsync<List<Rental>>($"api/rentals/manage{queryString}");
+            return rentals ?? new List<Rental>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching rentals for management: {ex.Message}");
+            return new List<Rental>();
+        }
+    }
+
+    public async Task<bool> UpdateRentalStatusAsync(int id, string status)
+    {
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/rentals/{id}/status", new { status });
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating rental status: {ex.Message}");
+            return false;
+        }
+    }
+
+    // Vehicle Damages
+    public async Task<List<VehicleDamage>> GetVehicleDamagesAsync()
+    {
+        try
+        {
+            var damages = await _httpClient.GetFromJsonAsync<List<VehicleDamage>>("api/vehicledamages");
+            return damages ?? new List<VehicleDamage>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching vehicle damages: {ex.Message}");
+            return new List<VehicleDamage>();
+        }
+    }
+
+    public async Task<VehicleDamage?> GetVehicleDamageAsync(int id)
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<VehicleDamage>($"api/vehicledamages/{id}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching vehicle damage: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<List<VehicleDamage>> GetDamagesByRentalAsync(int rentalId)
+    {
+        try
+        {
+            var damages = await _httpClient.GetFromJsonAsync<List<VehicleDamage>>($"api/vehicledamages/rental/{rentalId}");
+            return damages ?? new List<VehicleDamage>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching damages for rental: {ex.Message}");
+            return new List<VehicleDamage>();
+        }
+    }
+
+    public async Task<VehicleDamage?> CreateVehicleDamageAsync(CreateVehicleDamageRequest request)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/vehicledamages", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<VehicleDamage>();
+            }
+            
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating vehicle damage: {ex.Message}");
+            return null;
+        }
+    }
+
+    // Reports
+    public async Task<DashboardReport?> GetDashboardReportAsync()
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<DashboardReport>("api/reports/dashboard");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching dashboard report: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<RentalStatistics?> GetRentalStatisticsAsync(DateTime? startDate = null, DateTime? endDate = null)
+    {
+        try
+        {
+            var queryParams = new List<string>();
+            
+            if (startDate.HasValue)
+                queryParams.Add($"startDate={startDate.Value:yyyy-MM-dd}");
+            if (endDate.HasValue)
+                queryParams.Add($"endDate={endDate.Value:yyyy-MM-dd}");
+
+            var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+            return await _httpClient.GetFromJsonAsync<RentalStatistics>($"api/reports/rentals/statistics{queryString}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching rental statistics: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<List<VehicleUtilization>> GetVehicleUtilizationReportAsync(DateTime? startDate = null, DateTime? endDate = null)
+    {
+        try
+        {
+            var queryParams = new List<string>();
+            
+            if (startDate.HasValue)
+                queryParams.Add($"startDate={startDate.Value:yyyy-MM-dd}");
+            if (endDate.HasValue)
+                queryParams.Add($"endDate={endDate.Value:yyyy-MM-dd}");
+
+            var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+            var utilization = await _httpClient.GetFromJsonAsync<List<VehicleUtilization>>($"api/reports/vehicles/utilization{queryString}");
+            return utilization ?? new List<VehicleUtilization>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching vehicle utilization: {ex.Message}");
+            return new List<VehicleUtilization>();
+        }
+    }
+
+    public async Task<List<MonthlyRevenue>> GetMonthlyRevenueReportAsync(int months = 12)
+    {
+        try
+        {
+            var revenue = await _httpClient.GetFromJsonAsync<List<MonthlyRevenue>>($"api/reports/revenue/monthly?months={months}");
+            return revenue ?? new List<MonthlyRevenue>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching monthly revenue: {ex.Message}");
+            return new List<MonthlyRevenue>();
+        }
+    }
+
+    // Categories
+    public async Task<List<CategoryModel>> GetCategoriesAsync(bool activeOnly = false)
+    {
+        try
+        {
+            var url = activeOnly ? "api/categories?activeOnly=true" : "api/categories";
+            var categories = await _httpClient.GetFromJsonAsync<List<CategoryModel>>(url);
+            return categories ?? new List<CategoryModel>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching categories: {ex.Message}");
+            return new List<CategoryModel>();
+        }
+    }
+
+    public async Task<CategoryModel?> GetCategoryAsync(int id)
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<CategoryModel>($"api/categories/{id}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching category: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<CategoryModel?> CreateCategoryAsync(CreateCategoryModel model)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/categories", model);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<CategoryModel>();
+            }
+            
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating category: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<CategoryModel?> UpdateCategoryAsync(int id, UpdateCategoryModel model)
+    {
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/categories/{id}", model);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<CategoryModel>();
+            }
+            
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating category: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteCategoryAsync(int id)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"api/categories/{id}");
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting category: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<CategoryModel?> ToggleCategoryActiveAsync(int id)
+    {
+        try
+        {
+            var response = await _httpClient.PatchAsync($"api/categories/{id}/toggle", null);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<CategoryModel>();
+            }
+            
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error toggling category: {ex.Message}");
+            return null;
+        }
+    }
+
+    // Employee Management
+    public async Task<List<EmployeeModel>> GetEmployeesAsync()
+    {
+        try
+        {
+            var employees = await _httpClient.GetFromJsonAsync<List<EmployeeModel>>("api/users/employees");
+            return employees ?? new List<EmployeeModel>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching employees: {ex.Message}");
+            return new List<EmployeeModel>();
+        }
+    }
+
+    public async Task<EmployeeModel?> CreateEmployeeAsync(CreateEmployeeModel model)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/users/employees", model);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<EmployeeModel>();
+            }
+            
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating employee: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<bool> UpdateUserRoleAsync(string id, string role)
+    {
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/users/{id}/role", new { role });
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating user role: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteUserAsync(string id)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"api/users/{id}");
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting user: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<List<Rental>> GetMyRentalsAsync()
+    {
+        try
+        {
+            // Get current user first to get their ID
+            var user = await GetCurrentCustomerAsync();
+            if (user == null || string.IsNullOrEmpty(user.Id))
+            {
+                Console.WriteLine("Cannot fetch rentals: User not found");
+                return new List<Rental>();
+            }
+
+            var rentals = await _httpClient.GetFromJsonAsync<List<Rental>>($"api/rentals/user/{user.Id}");
+            return rentals ?? new List<Rental>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching my rentals: {ex.Message}");
+            return new List<Rental>();
+        }
+    }
+
+    public async Task<List<VehicleDamage>> GetMyDamagesAsync()
+    {
+        try
+        {
+            var damages = await _httpClient.GetFromJsonAsync<List<VehicleDamage>>("api/vehicledamages/me");
+            return damages ?? new List<VehicleDamage>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching my damages: {ex.Message}");
+            return new List<VehicleDamage>();
         }
     }
 }

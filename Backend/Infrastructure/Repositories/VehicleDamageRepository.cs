@@ -20,7 +20,7 @@ public class VehicleDamageRepository : Repository<VehicleDamage>, IVehicleDamage
             .Where(d => d.VehicleId == vehicleId)
             .Include(d => d.Vehicle)
             .Include(d => d.Rental)
-                .ThenInclude(r => r!.Customer)
+                .ThenInclude(r => r!.User)
             .OrderByDescending(d => d.ReportedDate)
             .ToListAsync();
     }
@@ -31,7 +31,7 @@ public class VehicleDamageRepository : Repository<VehicleDamage>, IVehicleDamage
             .Where(d => d.RentalId == rentalId)
             .Include(d => d.Vehicle)
             .Include(d => d.Rental)
-                .ThenInclude(r => r!.Customer)
+                .ThenInclude(r => r!.User)
             .OrderByDescending(d => d.ReportedDate)
             .ToListAsync();
     }
@@ -71,7 +71,7 @@ public class VehicleDamageRepository : Repository<VehicleDamage>, IVehicleDamage
         return await _context.VehicleDamages
             .Include(d => d.Vehicle)
             .Include(d => d.Rental)
-                .ThenInclude(r => r!.Customer)
+                .ThenInclude(r => r!.User)
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 

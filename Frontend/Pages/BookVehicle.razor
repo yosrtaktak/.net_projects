@@ -1,0 +1,514 @@
+@page "/book-vehicle"
+@page "/book-vehicle/{VehicleId:int}"
+@layout CustomerLayout
+@inject IApiService ApiService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@using Frontend.Models
+@using Frontend.Services
+
+<PageTitle>Book a Vehicle - Car Rental</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    @if (isLoadingPage)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (currentCustomer == null)
+    {
+        <MudAlert Severity="Severity.Error" Class="my-4">
+            <MudText>Unable to load your customer profile. Please ensure your account is set up properly.</MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Error" Href="/profile" Class="mt-2">
+                Go to Profile
+            </MudButton>
+        </MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <!-- Header -->
+            <MudPaper Elevation="0" Class="pa-4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h3" Style="color: white;">
+                            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Large" Class="mr-2" />
+                            <strong>Book Your Vehicle</strong>
+                        </MudText>
+                        <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.95);">
+                            Choose your dates and confirm your booking
+                        </MudText>
+                    </MudStack>
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Surface" 
+                               StartIcon="@Icons.Material.Filled.ArrowBack"
+                               Href="/vehicles/browse">
+                        Back to Browse
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+
+            <MudGrid>
+                <!-- Booking Form -->
+                <MudItem xs="12" md="7">
+                    <MudCard Elevation="3">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h5">
+                                    <MudIcon Icon="@Icons.Material.Filled.EventNote" Class="mr-2" />
+                                    Booking Details
+                                </MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudStack Spacing="3">
+                                <!-- Vehicle Selection -->
+                                <MudSelect T="int" 
+                                          Label="Select Vehicle" 
+                                          Value="selectedVehicleId"
+                                          ValueChanged="OnVehicleChanged"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          AnchorOrigin="Origin.BottomCenter"
+                                          AdornmentIcon="@Icons.Material.Filled.DirectionsCar"
+                                          Adornment="Adornment.Start">
+                                    <MudSelectItem Value="0">-- Choose a vehicle --</MudSelectItem>
+                                    @foreach (var vehicle in availableVehicles)
+                                    {
+                                        <MudSelectItem Value="@vehicle.Id">
+                                            <MudStack Row="true" Justify="Justify.SpaceBetween" Style="width: 100%;">
+                                                <MudText>@vehicle.Brand @vehicle.Model (@vehicle.Year)</MudText>
+                                                <MudChip T="string" Size="Size.Small" Color="GetCategoryColor(vehicle.Category)">
+                                                    $@vehicle.DailyRate.ToString("N0")/day
+                                                </MudChip>
+                                            </MudStack>
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+
+                                @if (selectedVehicle != null)
+                                {
+                                    <MudPaper Elevation="1" Class="pa-3" Style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);">
+                                        <MudGrid Spacing="2">
+                                            <MudItem xs="12">
+                                                <MudText Typo="Typo.h6" Color="Color.Primary">@selectedVehicle.Brand @selectedVehicle.Model</MudText>
+                                            </MudItem>
+                                            <MudItem xs="6" sm="3">
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Category</MudText>
+                                                    <MudChip T="string" Size="Size.Small" Color="GetCategoryColor(selectedVehicle.Category)">
+                                                        @selectedVehicle.Category
+                                                    </MudChip>
+                                                </MudStack>
+                                            </MudItem>
+                                            <MudItem xs="6" sm="3">
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Year</MudText>
+                                                    <MudText Typo="Typo.body2"><strong>@selectedVehicle.Year</strong></MudText>
+                                                </MudStack>
+                                            </MudItem>
+                                            <MudItem xs="6" sm="3">
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Fuel</MudText>
+                                                    <MudText Typo="Typo.body2"><strong>@selectedVehicle.FuelType</strong></MudText>
+                                                </MudStack>
+                                            </MudItem>
+                                            <MudItem xs="6" sm="3">
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Seats</MudText>
+                                                    <MudText Typo="Typo.body2"><strong>@selectedVehicle.SeatingCapacity</strong></MudText>
+                                                </MudStack>
+                                            </MudItem>
+                                        </MudGrid>
+                                    </MudPaper>
+                                }
+
+                                <MudDivider />
+
+                                <!-- Date Selection -->
+                                <MudText Typo="Typo.h6" Color="Color.Primary">
+                                    <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Class="mr-2" />
+                                    Rental Period
+                                </MudText>
+
+                                <MudGrid>
+                                    <MudItem xs="12" md="6">
+                                        <MudDatePicker Label="Pick-up Date" 
+                                                      Date="startDate"
+                                                      DateChanged="OnStartDateChanged"
+                                                      Variant="Variant.Outlined"
+                                                      MinDate="DateTime.Today"
+                                                      Required="true"
+                                                      AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                                                      Adornment="Adornment.Start"
+                                                      DateFormat="dd/MM/yyyy" />
+                                    </MudItem>
+                                    <MudItem xs="12" md="6">
+                                        <MudDatePicker Label="Return Date" 
+                                                      Date="endDate"
+                                                      DateChanged="OnEndDateChanged"
+                                                      Variant="Variant.Outlined"
+                                                      MinDate="@(startDate?.AddDays(1) ?? DateTime.Today.AddDays(1))"
+                                                      Required="true"
+                                                      AdornmentIcon="@Icons.Material.Filled.Event"
+                                                      Adornment="Adornment.Start"
+                                                      DateFormat="dd/MM/yyyy" />
+                                    </MudItem>
+                                </MudGrid>
+
+                                @if (startDate.HasValue && endDate.HasValue && startDate < endDate)
+                                {
+                                    <MudAlert Severity="Severity.Info" Dense="true">
+                                        <strong>Duration:</strong> @rentalDays @(rentalDays == 1 ? "day" : "days")
+                                    </MudAlert>
+                                }
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Booking Summary -->
+                <MudItem xs="12" md="5">
+                    <MudStack Spacing="3">
+                        <!-- Customer Info -->
+                        <MudCard Elevation="3">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6">
+                                        <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-2" />
+                                        Your Information
+                                    </MudText>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Name:</MudText>
+                                        <MudText Typo="Typo.body2"><strong>@currentCustomer.FirstName @currentCustomer.LastName</strong></MudText>
+                                    </MudStack>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Email:</MudText>
+                                        <MudText Typo="Typo.body2"><strong>@currentCustomer.Email</strong></MudText>
+                                    </MudStack>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Tier:</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="GetTierColor(currentCustomer.Tier)">
+                                            @currentCustomer.Tier
+                                        </MudChip>
+                                    </MudStack>
+                                    @if (currentCustomer.Tier != CustomerTier.Standard)
+                                    {
+                                        <MudAlert Severity="Severity.Success" Dense="true" Icon="@Icons.Material.Filled.Discount">
+                                            <strong>@GetTierDiscountText(currentCustomer.Tier)</strong>
+                                        </MudAlert>
+                                    }
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+
+                        <!-- Price Summary -->
+                        @if (priceCalculation != null)
+                        {
+                            <MudCard Elevation="3" Style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);">
+                                <MudCardHeader>
+                                    <CardHeaderContent>
+                                        <MudText Typo="Typo.h6" Color="Color.Primary">
+                                            <MudIcon Icon="@Icons.Material.Filled.Receipt" Class="mr-2" />
+                                            Price Summary
+                                        </MudText>
+                                    </CardHeaderContent>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <MudStack Spacing="2">
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                            <MudText Typo="Typo.body2" Color="Color.Secondary">Rental Duration:</MudText>
+                                            <MudText Typo="Typo.body2"><strong>@priceCalculation.NumberOfDays @(priceCalculation.NumberOfDays == 1 ? "day" : "days")</strong></MudText>
+                                        </MudStack>
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                            <MudText Typo="Typo.body2" Color="Color.Secondary">Daily Rate:</MudText>
+                                            <MudText Typo="Typo.body2"><strong>$@priceCalculation.DailyRate.ToString("N2")</strong></MudText>
+                                        </MudStack>
+                                        @if (priceCalculation.Discount.HasValue && priceCalculation.Discount > 0)
+                                        {
+                                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">Base Amount:</MudText>
+                                                <MudText Typo="Typo.body2">$@((priceCalculation.DailyRate * priceCalculation.NumberOfDays).ToString("N2"))</MudText>
+                                            </MudStack>
+                                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                                <MudText Typo="Typo.body2" Color="Color.Success">
+                                                    <MudIcon Icon="@Icons.Material.Filled.LocalOffer" Size="Size.Small" />
+                                                    @currentCustomer.Tier Discount (@priceCalculation.Discount.Value%):
+                                                </MudText>
+                                                <MudText Typo="Typo.body2" Color="Color.Success"><strong>-$@(((priceCalculation.DailyRate * priceCalculation.NumberOfDays) - priceCalculation.TotalPrice).ToString("N2"))</strong></MudText>
+                                            </MudStack>
+                                        }
+                                        <MudDivider />
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                            <MudText Typo="Typo.h5">Total Cost:</MudText>
+                                            <MudText Typo="Typo.h3" Color="Color.Primary"><strong>$@priceCalculation.TotalPrice.ToString("N2")</strong></MudText>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudCardContent>
+                            </MudCard>
+                        }
+                        else
+                        {
+                            <MudPaper Elevation="2" Class="pa-6 text-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Calculate" Size="Size.Large" Color="Color.Secondary" Style="font-size: 3rem;" />
+                                <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mt-3">
+                                    Select a vehicle and dates to calculate the price
+                                </MudText>
+                            </MudPaper>
+                        }
+
+                        <!-- Booking Button -->
+                        <MudButton Variant="Variant.Filled" 
+                                  Color="Color.Primary" 
+                                  Size="Size.Large"
+                                  FullWidth="true"
+                                  StartIcon="@Icons.Material.Filled.CheckCircle"
+                                  OnClick="HandleBooking"
+                                  Disabled="@(isBooking || selectedVehicleId == 0 || !startDate.HasValue || !endDate.HasValue || priceCalculation == null)">
+                            @if (isBooking)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                <span>Processing Booking...</span>
+                            }
+                            else
+                            {
+                                <span>Confirm Booking - $@(priceCalculation?.TotalPrice.ToString("N2") ?? "0.00")</span>
+                            }
+                        </MudButton>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudStack>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int? VehicleId { get; set; }
+
+    private bool isLoadingPage = true;
+    private bool isBooking = false;
+    private Customer? currentCustomer;
+    
+    private List<Vehicle> availableVehicles = new();
+    private int selectedVehicleId = 0;
+    private Vehicle? selectedVehicle => availableVehicles.FirstOrDefault(v => v.Id == selectedVehicleId);
+    
+    private DateTime? startDate = DateTime.Today.AddDays(1);
+    private DateTime? endDate = DateTime.Today.AddDays(3);
+    
+    private PriceCalculationResponse? priceCalculation;
+    
+    private int rentalDays => startDate.HasValue && endDate.HasValue 
+        ? (endDate.Value - startDate.Value).Days 
+        : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Verify user is a customer
+        var role = await AuthService.GetRoleAsync();
+        if (role != "Customer")
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        await LoadPageData();
+        isLoadingPage = false;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Pre-select vehicle if provided in URL
+        if (VehicleId.HasValue && VehicleId.Value > 0 && selectedVehicleId == 0)
+        {
+            selectedVehicleId = VehicleId.Value;
+            await CalculatePrice();
+        }
+    }
+
+    private async Task LoadPageData()
+    {
+        try
+        {
+            // Load customer profile
+            currentCustomer = await ApiService.GetCurrentCustomerAsync();
+            
+            if (currentCustomer == null)
+            {
+                Snackbar.Add("Unable to load your profile. Please contact support.", Severity.Error);
+                return;
+            }
+
+            // Load available vehicles
+            availableVehicles = await ApiService.GetVehiclesAsync();
+            availableVehicles = availableVehicles.Where(v => v.Status == VehicleStatus.Available).ToList();
+
+            // Pre-select vehicle if provided
+            if (VehicleId.HasValue && VehicleId.Value > 0)
+            {
+                selectedVehicleId = VehicleId.Value;
+                await CalculatePrice();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading data: {ex.Message}", Severity.Error);
+            Console.WriteLine($"Load error: {ex}");
+        }
+    }
+
+    private async Task OnVehicleChanged(int vehicleId)
+    {
+        selectedVehicleId = vehicleId;
+        await CalculatePrice();
+    }
+
+    private async Task OnStartDateChanged(DateTime? date)
+    {
+        startDate = date;
+        await CalculatePrice();
+    }
+
+    private async Task OnEndDateChanged(DateTime? date)
+    {
+        endDate = date;
+        await CalculatePrice();
+    }
+
+    private async Task CalculatePrice()
+    {
+        if (selectedVehicleId == 0 || !startDate.HasValue || !endDate.HasValue || currentCustomer == null || startDate >= endDate)
+        {
+            priceCalculation = null;
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            // Always use loyalty pricing strategy for customers (based on their tier)
+            var request = new CalculatePriceRequest
+            {
+                VehicleId = selectedVehicleId,
+                UserId = currentCustomer.Id,
+                StartDate = startDate.Value,
+                EndDate = endDate.Value,
+                PricingStrategy = "loyalty" // Automatically use loyalty pricing based on tier
+            };
+
+            priceCalculation = await ApiService.CalculatePriceAsync(request);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error calculating price: {ex.Message}", Severity.Error);
+            priceCalculation = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleBooking()
+    {
+        if (currentCustomer == null)
+        {
+            Snackbar.Add("Customer profile not loaded.", Severity.Error);
+            return;
+        }
+
+        if (selectedVehicleId == 0)
+        {
+            Snackbar.Add("Please select a vehicle.", Severity.Warning);
+            return;
+        }
+
+        if (!startDate.HasValue || !endDate.HasValue)
+        {
+            Snackbar.Add("Please select pick-up and return dates.", Severity.Warning);
+            return;
+        }
+
+        if (startDate >= endDate)
+        {
+            Snackbar.Add("Return date must be after pick-up date.", Severity.Warning);
+            return;
+        }
+
+        isBooking = true;
+
+        try
+        {
+            var request = new CreateRentalRequest
+            {
+                UserId = currentCustomer.Id,
+                VehicleId = selectedVehicleId,
+                StartDate = startDate.Value,
+                EndDate = endDate.Value,
+                PricingStrategy = "loyalty" // Always use loyalty pricing for customers
+            };
+
+            var result = await ApiService.CreateRentalAsync(request);
+
+            if (result != null)
+            {
+                Snackbar.Add($"Booking confirmed! Total: ${result.TotalCost:N2}", Severity.Success);
+                await Task.Delay(2000);
+                NavigationManager.NavigateTo("/my-rentals");
+            }
+            else
+            {
+                Snackbar.Add("Booking failed. The vehicle might not be available for the selected dates.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"An error occurred: {ex.Message}", Severity.Error);
+            Console.WriteLine($"Booking error: {ex}");
+        }
+        finally
+        {
+            isBooking = false;
+        }
+    }
+
+    private Color GetCategoryColor(VehicleCategory category)
+    {
+        return category switch
+        {
+            VehicleCategory.Economy => Color.Info,
+            VehicleCategory.Compact => Color.Primary,
+            VehicleCategory.SUV => Color.Success,
+            VehicleCategory.Luxury => Color.Warning,
+            VehicleCategory.Sports => Color.Error,
+            VehicleCategory.Van => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetTierColor(CustomerTier tier)
+    {
+        return tier switch
+        {
+            CustomerTier.Standard => Color.Default,
+            CustomerTier.Silver => Color.Info,
+            CustomerTier.Gold => Color.Warning,
+            CustomerTier.Platinum => Color.Primary,
+            _ => Color.Default
+        };
+    }
+
+    private string GetTierDiscountText(CustomerTier tier)
+    {
+        return tier switch
+        {
+            CustomerTier.Silver => "?? You get 5% off with Silver Tier!",
+            CustomerTier.Gold => "?? You get 10% off with Gold Tier!",
+            CustomerTier.Platinum => "?? You get 15% off with Platinum Tier!",
+            _ => ""
+        };
+    }
+}

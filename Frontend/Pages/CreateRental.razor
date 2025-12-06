@@ -1,215 +1,381 @@
 @page "/rentals/create"
+@attribute [Authorize(Roles = "Admin,Employee")]
+@layout AdminLayout
 @inject IApiService ApiService
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 @using Frontend.Models
+@using Frontend.Services
+@using Microsoft.AspNetCore.Authorization
 
 <PageTitle>Create Rental - Car Rental System</PageTitle>
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-4">
-                    <h2 class="card-title mb-4">
-                        <i class="bi bi-calendar-check text-primary"></i> Create Rental
-                    </h2>
+<MudContainer MaxWidth="MaxWidth.Large">
+    @if (isLoadingPage)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <!-- Header -->
+            <MudPaper Elevation="0" Class="pa-4" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%);">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h4" Style="color: white;">
+                            <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Large" Class="mr-2" />
+                            <strong>"Create New Rental"</strong>
+                        </MudText>
+                        <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.9);">
+                            "Book a vehicle for a customer"
+                        </MudText>
+                    </MudStack>
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Surface" 
+                               StartIcon="@Icons.Material.Filled.ArrowBack"
+                               Href="/rentals/manage">
+                        "Back to Rentals"
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
 
-                    @if (!string.IsNullOrEmpty(errorMessage))
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudCard Elevation="2">
+                        <MudCardContent>
+                            <MudStack Spacing="3">
+                                <!-- Customer Selection - Only for Admin/Employee -->
+                                <MudSelect T="string" 
+                                          Label="Customer" 
+                                          Value="rentalRequest.UserId"
+                                          ValueChanged="OnCustomerChanged"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          AnchorOrigin="Origin.BottomCenter">
+                                    <MudSelectItem Value="@("")">-- Select Customer --</MudSelectItem>
+                                    @foreach (var customer in customers)
+                                    {
+                                        <MudSelectItem Value="@customer.Id">
+                                            @customer.FirstName @customer.LastName (@customer.Email)
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+
+                                <!-- Vehicle Selection -->
+                                <MudSelect T="int" 
+                                          Label="Vehicle" 
+                                          Value="rentalRequest.VehicleId"
+                                          ValueChanged="OnVehicleChanged"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          AnchorOrigin="Origin.BottomCenter">
+                                    <MudSelectItem Value="0">-- Select Vehicle --</MudSelectItem>
+                                    @foreach (var vehicle in vehicles)
+                                    {
+                                        <MudSelectItem Value="@vehicle.Id">
+                                            @vehicle.Brand @vehicle.Model - $@vehicle.DailyRate/day (@vehicle.Category)
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+
+                                <!-- Date Selection -->
+                                <MudGrid>
+                                    <MudItem xs="12" md="6">
+                                        <MudDatePicker Label="Start Date" 
+                                                      Date="startDate"
+                                                      DateChanged="OnStartDateChanged"
+                                                      Variant="Variant.Outlined"
+                                                      MinDate="DateTime.Today"
+                                                      Required="true" />
+                                    </MudItem>
+                                    <MudItem xs="12" md="6">
+                                        <MudDatePicker Label="End Date" 
+                                                      Date="endDate"
+                                                      DateChanged="OnEndDateChanged"
+                                                      Variant="Variant.Outlined"
+                                                      MinDate="DateTime.Today.AddDays(1)"
+                                                      Required="true" />
+                                    </MudItem>
+                                </MudGrid>
+
+                                <!-- Pricing Strategy -->
+                                <MudSelect T="string" 
+                                          Label="Pricing Strategy" 
+                                          Value="rentalRequest.PricingStrategy"
+                                          ValueChanged="OnPricingStrategyChanged"
+                                          Variant="Variant.Outlined"
+                                          Required="true">
+                                    <MudSelectItem Value="@("standard")">Standard - Regular pricing</MudSelectItem>
+                                    <MudSelectItem Value="@("weekend")">Weekend Special - Discounted rates</MudSelectItem>
+                                    <MudSelectItem Value="@("seasonal")">Seasonal - Season-based pricing</MudSelectItem>
+                                    <MudSelectItem Value="@("loyalty")">Loyalty Discount - For repeat customers</MudSelectItem>
+                                </MudSelect>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <!-- Price Summary -->
+                    @if (priceCalculation != null && rentalRequest.VehicleId > 0 && !string.IsNullOrEmpty(rentalRequest.UserId))
                     {
-                        <div class="alert alert-danger alert-dismissible">
-                            <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
-                            <button type="button" class="btn-close" @onclick="ClearError"></button>
-                        </div>
+                        <MudCard Elevation="2">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6">
+                                        <MudIcon Icon="@Icons.Material.Filled.Receipt" Class="mr-2" />
+                                        Price Summary
+                                    </MudText>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Strategy:</MudText>
+                                        <MudText Typo="Typo.body2"><strong>@priceCalculation.StrategyUsed</strong></MudText>
+                                    </MudStack>
+                                    <MudDivider />
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Duration:</MudText>
+                                        <MudText Typo="Typo.body2"><strong>@priceCalculation.NumberOfDays days</strong></MudText>
+                                    </MudStack>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Daily Rate:</MudText>
+                                        <MudText Typo="Typo.body2"><strong>$@priceCalculation.DailyRate</strong></MudText>
+                                    </MudStack>
+                                    @if (priceCalculation.Discount.HasValue && priceCalculation.Discount > 0)
+                                    {
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                            <MudText Typo="Typo.body2" Color="Color.Secondary">Discount:</MudText>
+                                            <MudText Typo="Typo.body2" Color="Color.Success"><strong>@priceCalculation.Discount.Value%</strong></MudText>
+                                        </MudStack>
+                                    }
+                                    <MudDivider />
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.h6">Total:</MudText>
+                                        <MudText Typo="Typo.h4" Color="Color.Primary"><strong>$@priceCalculation.TotalPrice</strong></MudText>
+                                    </MudStack>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
                     }
-
-                    @if (!string.IsNullOrEmpty(successMessage))
+                    else
                     {
-                        <div class="alert alert-success">
-                            <i class="bi bi-check-circle me-2"></i>@successMessage
-                        </div>
+                        <MudPaper Elevation="2" Class="pa-4 text-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Calculate" Size="Size.Large" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                                "Select customer, vehicle, and dates to see price"
+                            </MudText>
+                        </MudPaper>
                     }
+                </MudItem>
+            </MudGrid>
 
-                    <EditForm Model="rentalRequest" OnValidSubmit="HandleCreateRental">
-                        <div class="mb-3">
-                            <label class="form-label">Customer</label>
-                            <InputSelect class="form-select" @bind-Value="rentalRequest.CustomerId">
-                                <option value="0">-- Select Customer --</option>
-                                @foreach (var customer in customers)
-                                {
-                                    <option value="@customer.Id">@customer.FirstName @customer.LastName (@customer.Email)
-                                    </option>
-                                }
-                            </InputSelect>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Vehicle</label>
-                            <InputSelect class="form-select" @bind-Value="rentalRequest.VehicleId"
-                                @bind-Value:after="OnVehicleChanged">
-                                <option value="0">-- Select Vehicle --</option>
-                                @foreach (var vehicle in vehicles)
-                                {
-                                    <option value="@vehicle.Id">@vehicle.Brand @vehicle.Model - $@vehicle.DailyRate/day
-                                    </option>
-                                }
-                            </InputSelect>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Start Date</label>
-                                <InputDate class="form-control" @bind-Value="rentalRequest.StartDate"
-                                    @bind-Value:after="CalculatePrice" min="@DateTime.Now.ToString("yyyy-MM-dd")" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">End Date</label>
-                                <InputDate class="form-control" @bind-Value="rentalRequest.EndDate"
-                                    @bind-Value:after="CalculatePrice" min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" />
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Pricing Strategy</label>
-                            <InputSelect class="form-select" @bind-Value="rentalRequest.PricingStrategy"
-                                @bind-Value:after="CalculatePrice">
-                                <option value="standard">Standard</option>
-                                <option value="weekend">Weekend Special</option>
-                                <option value="seasonal">Seasonal</option>
-                                <option value="loyalty">Loyalty Discount</option>
-                            </InputSelect>
-                            <small class="text-muted">Different pricing strategies offer various discounts</small>
-                        </div>
-
-                        @if (priceCalculation != null && rentalRequest.VehicleId > 0 && rentalRequest.CustomerId > 0)
-                        {
-                            <div class="card bg-light mb-3">
-                                <div class="card-body">
-                                    <h5 class="card-title text-primary">Price Breakdown</h5>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <p class="mb-1"><strong>Strategy:</strong> @priceCalculation.StrategyUsed</p>
-                                            <p class="mb-1"><strong>Duration:</strong> @priceCalculation.NumberOfDays days
-                                            </p>
-                                            <p class="mb-1"><strong>Daily Rate:</strong> $@priceCalculation.DailyRate</p>
-                                            @if (priceCalculation.Discount.HasValue && priceCalculation.Discount > 0)
-                                            {
-                                                <p class="mb-1 text-success"><strong>Discount:</strong>
-                                                    @priceCalculation.Discount.Value%</p>
-                                            }
-                                        </div>
-                                        <div class="col-6 text-end">
-                                            <h3 class="text-primary mb-0">Total: $@priceCalculation.TotalPrice</h3>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg"
-                                disabled="@(isLoading || rentalRequest.VehicleId == 0 || rentalRequest.CustomerId == 0)">
-                                @if (isLoading)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2"></span>
-                                    <span>Creating Rental...</span>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-check-lg me-2"></i>
-                                    <span>Create Rental</span>
-                                }
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary" @onclick="GoToVehicles">
-                                <i class="bi bi-x-lg me-2"></i>Cancel
-                            </button>
-                        </div>
-                    </EditForm>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+            <!-- Action Buttons -->
+            <MudStack Row="true" Spacing="2" Justify="Justify.Center">
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary" 
+                          Size="Size.Large"
+                          StartIcon="@Icons.Material.Filled.Check"
+                          OnClick="HandleCreateRental"
+                          Disabled="@(isLoading || rentalRequest.VehicleId == 0 || string.IsNullOrEmpty(rentalRequest.UserId) || !startDate.HasValue || !endDate.HasValue)">
+                    @if (isLoading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <span>Creating Rental...</span>
+                    }
+                    else
+                    {
+                        <span>"Create Rental"</span>
+                    }
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" 
+                          Color="Color.Default" 
+                          Size="Size.Large"
+                          StartIcon="@Icons.Material.Filled.Cancel"
+                          Href="/rentals/manage">
+                    Cancel
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    }
+</MudContainer>
 
 @code {
+    private bool isLoadingPage = true;
+    private bool isLoading = false;
+    
     private CreateRentalRequest rentalRequest = new()
     {
-        StartDate = DateTime.Now.AddDays(1),
-        EndDate = DateTime.Now.AddDays(3),
         PricingStrategy = "standard"
     };
 
     private List<Customer> customers = new();
     private List<Vehicle> vehicles = new();
     private PriceCalculationResponse? priceCalculation;
-    private string errorMessage = string.Empty;
-    private string successMessage = string.Empty;
-    private bool isLoading = false;
+    
+    private DateTime? startDate = DateTime.Today.AddDays(1);
+    private DateTime? endDate = DateTime.Today.AddDays(3);
 
     [SupplyParameterFromQuery(Name = "vehicleId")]
     public int? VehicleId { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
-
-        if (VehicleId.HasValue)
+        var role = await AuthService.GetRoleAsync();
+        
+        // Only admin and employee can access this page
+        if (role != "Admin" && role != "Employee")
         {
-            rentalRequest.VehicleId = VehicleId.Value;
-            await OnVehicleChanged();
+            NavigationManager.NavigateTo("/");
+            return;
         }
+        
+        await LoadPageData();
+        isLoadingPage = false;
     }
 
-    private async Task LoadData()
+    protected override async Task OnParametersSetAsync()
     {
-        customers = await ApiService.GetCustomersAsync();
-        vehicles = await ApiService.GetVehiclesAsync();
-        vehicles = vehicles.Where(v => v.Status == VehicleStatus.Available).ToList();
-    }
-
-    private async Task OnVehicleChanged()
-    {
-        if (rentalRequest.VehicleId > 0 && rentalRequest.CustomerId > 0)
+        // Recalculate price when parameters change
+        if (rentalRequest.VehicleId > 0 && !string.IsNullOrEmpty(rentalRequest.UserId) && startDate.HasValue && endDate.HasValue)
         {
             await CalculatePrice();
         }
     }
 
+    private async Task LoadPageData()
+    {
+        try
+        {
+            // Load available vehicles
+            vehicles = await ApiService.GetVehiclesAsync();
+            vehicles = vehicles.Where(v => v.Status == VehicleStatus.Available).ToList();
+
+            // Load all customers for admin/employee
+            customers = await ApiService.GetCustomersAsync();
+
+            // If vehicleId is provided in query string, pre-select it
+            if (VehicleId.HasValue && VehicleId.Value > 0)
+            {
+                rentalRequest.VehicleId = VehicleId.Value;
+                await CalculatePrice();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading data: {ex.Message}", Severity.Error);
+            Console.WriteLine($"Load data error: {ex}");
+        }
+    }
+
+    private async Task OnCustomerChanged(string userId)
+    {
+        rentalRequest.UserId = userId;
+        await CalculatePrice();
+    }
+
+    private async Task OnVehicleChanged(int vehicleId)
+    {
+        rentalRequest.VehicleId = vehicleId;
+        await CalculatePrice();
+    }
+
+    private async Task OnStartDateChanged(DateTime? date)
+    {
+        startDate = date;
+        if (startDate.HasValue && endDate.HasValue)
+        {
+            rentalRequest.StartDate = startDate.Value;
+            rentalRequest.EndDate = endDate.Value;
+        }
+        await CalculatePrice();
+    }
+
+    private async Task OnEndDateChanged(DateTime? date)
+    {
+        endDate = date;
+        if (startDate.HasValue && endDate.HasValue)
+        {
+            rentalRequest.StartDate = startDate.Value;
+            rentalRequest.EndDate = endDate.Value;
+        }
+        await CalculatePrice();
+    }
+
+    private async Task OnPricingStrategyChanged(string strategy)
+    {
+        rentalRequest.PricingStrategy = strategy;
+        await CalculatePrice();
+    }
+
     private async Task CalculatePrice()
     {
-        if (rentalRequest.VehicleId > 0 && rentalRequest.CustomerId > 0 &&
-            rentalRequest.StartDate < rentalRequest.EndDate)
+        if (rentalRequest.VehicleId > 0 && !string.IsNullOrEmpty(rentalRequest.UserId) &&
+            startDate.HasValue && endDate.HasValue &&
+            startDate < endDate)
         {
+            rentalRequest.StartDate = startDate.Value;
+            rentalRequest.EndDate = endDate.Value;
+
             var request = new CalculatePriceRequest
             {
                 VehicleId = rentalRequest.VehicleId,
-                CustomerId = rentalRequest.CustomerId,
+                UserId = rentalRequest.UserId,
                 StartDate = rentalRequest.StartDate,
                 EndDate = rentalRequest.EndDate,
                 PricingStrategy = rentalRequest.PricingStrategy
             };
 
-            priceCalculation = await ApiService.CalculatePriceAsync(request);
+            try
+            {
+                priceCalculation = await ApiService.CalculatePriceAsync(request);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error calculating price: {ex.Message}", Severity.Warning);
+                priceCalculation = null;
+            }
+        }
+        else
+        {
+            priceCalculation = null;
+            StateHasChanged();
         }
     }
 
     private async Task HandleCreateRental()
     {
-        if (rentalRequest.VehicleId == 0 || rentalRequest.CustomerId == 0)
+        if (rentalRequest.VehicleId == 0)
         {
-            errorMessage = "Please select both a customer and a vehicle.";
+            Snackbar.Add("Please select a vehicle.", Severity.Warning);
             return;
         }
 
-        if (rentalRequest.StartDate >= rentalRequest.EndDate)
+        if (string.IsNullOrEmpty(rentalRequest.UserId))
         {
-            errorMessage = "End date must be after start date.";
+            Snackbar.Add("Please select a customer.", Severity.Warning);
             return;
         }
+
+        if (!startDate.HasValue || !endDate.HasValue)
+        {
+            Snackbar.Add("Please select start and end dates.", Severity.Warning);
+            return;
+        }
+
+        if (startDate >= endDate)
+        {
+            Snackbar.Add("End date must be after start date.", Severity.Warning);
+            return;
+        }
+
+        rentalRequest.StartDate = startDate.Value;
+        rentalRequest.EndDate = endDate.Value;
 
         isLoading = true;
-        errorMessage = string.Empty;
-        successMessage = string.Empty;
 
         try
         {
@@ -217,32 +383,23 @@
 
             if (result != null)
             {
-                successMessage = $"Rental created successfully! Total cost: ${result.TotalCost}";
-                await Task.Delay(2000);
-                NavigationManager.NavigateTo("/rentals");
+                Snackbar.Add($"Rental created successfully! Total cost: ${result.TotalCost:N2}", Severity.Success);
+                await Task.Delay(1500);
+                NavigationManager.NavigateTo("/rentals/manage");
             }
             else
             {
-                errorMessage = "Failed to create rental. The vehicle might not be available for the selected dates.";
+                Snackbar.Add("Failed to create rental. The vehicle might not be available for the selected dates.", Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"An error occurred: {ex.Message}";
+            Snackbar.Add($"An error occurred: {ex.Message}", Severity.Error);
+            Console.WriteLine($"Create rental error: {ex}");
         }
         finally
         {
             isLoading = false;
         }
-    }
-
-    private void ClearError()
-    {
-        errorMessage = string.Empty;
-    }
-
-    private void GoToVehicles()
-    {
-        NavigationManager.NavigateTo("/vehicles");
     }
 }

@@ -12,15 +12,18 @@ public class AuthController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IJwtService _jwtService;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
+        RoleManager<IdentityRole> roleManager,
         IJwtService jwtService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _roleManager = roleManager;
         _jwtService = jwtService;
     }
 
@@ -40,24 +43,40 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Email already exists" });
         }
 
-        // Créer le nouvel utilisateur
+        // Créer le nouvel utilisateur avec les champs Customer intégrés
         var user = new ApplicationUser
         {
             UserName = dto.Username,
             Email = dto.Email,
             EmailConfirmed = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            FirstName = dto.Username, // Can be updated later in profile
+            LastName = "", // Can be updated later in profile
+            RegistrationDate = DateTime.UtcNow,
+            Tier = CustomerTier.Standard
         };
 
         var result = await _userManager.CreateAsync(user, dto.Password);
 
         if (!result.Succeeded)
         {
-            return BadRequest(new { message = "User creation failed", errors = result.Errors });
+            return BadRequest(new { 
+                message = "User creation failed", 
+                errors = result.Errors.Select(e => e.Description) 
+            });
         }
 
         // Assigner le rôle (par défaut Customer)
         var roleToAssign = string.IsNullOrEmpty(dto.Role) ? "Customer" : dto.Role;
+        
+        // Check if role exists before assigning
+        var roleExists = await _roleManager.RoleExistsAsync(roleToAssign);
+        if (!roleExists)
+        {
+            // Create the role if it doesn't exist
+            await _roleManager.CreateAsync(new IdentityRole(roleToAssign));
+        }
+        
         await _userManager.AddToRoleAsync(user, roleToAssign);
 
         // Générer le token

@@ -1,0 +1,558 @@
+@page "/admin/employees"
+@layout AdminLayout
+@inject Frontend.Services.IApiService ApiService
+@inject Frontend.Services.IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject MudBlazor.ISnackbar Snackbar
+@using Frontend.Models
+
+<PageTitle>Employee Management - Car Rental System</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="px-0">
+    @if (isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (!isAdmin)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-4">
+            <strong>Access Denied</strong> - Admin privileges required.
+        </MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <!-- Header -->
+            <MudPaper Elevation="0" Class="pa-4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h4" Style="font-weight: 600;">
+                            <MudIcon Icon="@Icons.Material.Filled.SupervisedUserCircle" Class="mr-2" />
+                            Employee Management
+                        </MudText>
+                        <MudText Typo="Typo.body1" Style="opacity: 0.9;">
+                            Manage system administrators and employees
+                        </MudText>
+                    </MudStack>
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Surface" 
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="OpenCreateDialog"
+                               Style="color: var(--mud-palette-primary); font-weight: 600;">
+                        Add Employee
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+
+            <!-- Statistics Cards -->
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="2" Class="pa-4" Style="height: 100%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                        <MudStack Spacing="2">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700;">@employees.Count</MudText>
+                                    <MudText Typo="Typo.body2" Style="opacity: 0.9;">Total Staff</MudText>
+                                </MudStack>
+                                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Style="opacity: 0.8;" />
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="2" Class="pa-4" Style="height: 100%; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                        <MudStack Spacing="2">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700;">@employees.Count(e => e.Roles.Contains("Admin"))</MudText>
+                                    <MudText Typo="Typo.body2" Style="opacity: 0.9;">Administrators</MudText>
+                                </MudStack>
+                                <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Style="opacity: 0.8;" />
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="2" Class="pa-4" Style="height: 100%; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;">
+                        <MudStack Spacing="2">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700;">@employees.Count(e => e.Roles.Contains("Employee"))</MudText>
+                                    <MudText Typo="Typo.body2" Style="opacity: 0.9;">Employees</MudText>
+                                </MudStack>
+                                <MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Large" Style="opacity: 0.8;" />
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Search Bar -->
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudTextField T="string" 
+                              Label="Search Employees" 
+                              @bind-Value="searchTerm" 
+                              Immediate="true" 
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start" 
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Placeholder="Name, Email..." />
+            </MudPaper>
+
+            <!-- Employees Table -->
+            @if (filteredEmployees.Any())
+            {
+                <MudPaper Elevation="2">
+                    <MudTable Items="@filteredEmployees" Hover="true" Striped="true" Dense="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh Style="font-weight: 600;">Name</MudTh>
+                            <MudTh Style="font-weight: 600;">Contact</MudTh>
+                            <MudTh Style="font-weight: 600;">Role</MudTh>
+                            <MudTh Style="font-weight: 600;">Joined</MudTh>
+                            <MudTh Style="font-weight: 600;">Last Login</MudTh>
+                            <MudTh Style="font-weight: 600;">Actions</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Name">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.FirstName @context.LastName</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">ID: @context.Id.Substring(0, 8)</MudText>
+                                </MudStack>
+                            </MudTd>
+                            <MudTd DataLabel="Contact">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" /> @context.Email
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" /> @context.PhoneNumber
+                                    </MudText>
+                                </MudStack>
+                            </MudTd>
+                            <MudTd DataLabel="Role">
+                                @foreach (var role in context.Roles)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(role)" Style="font-weight: 600; margin: 2px;">
+                                        @role
+                                    </MudChip>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Joined">
+                                <MudText Typo="Typo.body2">@context.RegistrationDate.ToString("MMM dd, yyyy")</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Last Login">
+                                @if (context.LastLogin.HasValue)
+                                {
+                                    <MudText Typo="Typo.body2">@context.LastLogin.Value.ToString("MMM dd, yyyy")</MudText>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Never</MudText>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Actions">
+                                <MudStack Row="true" Spacing="1">
+                                    <MudTooltip Text="Change Role">
+                                        <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" 
+                                                       Color="Color.Info" 
+                                                       Size="Size.Small"
+                                                       OnClick="@(() => OpenChangeRoleDialog(context))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Delete Employee">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                       Color="Color.Error" 
+                                                       Size="Size.Small"
+                                                       OnClick="@(() => OpenDeleteDialog(context))" />
+                                    </MudTooltip>
+                                </MudStack>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            }
+            else
+            {
+                <MudPaper Elevation="2" Class="pa-8 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" Style="font-size: 5rem; opacity: 0.5;" />
+                    <MudText Typo="Typo.h5" Color="Color.Secondary" Class="mt-4" Style="font-weight: 600;">No employees found</MudText>
+                    <MudText Typo="Typo.body1" Color="Color.Secondary">Try adjusting your search terms</MudText>
+                </MudPaper>
+            }
+        </MudStack>
+    }
+</MudContainer>
+
+<!-- Create Employee Dialog -->
+<MudDialog @bind-Visible="showCreateDialog" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Class="mr-2" />
+            Create New Employee
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="createForm" @bind-IsValid="@createFormValid">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" 
+                                  @bind-Value="createModel.FirstName" 
+                                  Label="First Name" 
+                                  Required="true"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" 
+                                  @bind-Value="createModel.LastName" 
+                                  Label="Last Name" 
+                                  Required="true"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" 
+                                  @bind-Value="createModel.Email" 
+                                  Label="Email Address" 
+                                  Required="true"
+                                  InputType="InputType.Email"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" 
+                                  @bind-Value="createModel.PhoneNumber" 
+                                  Label="Phone Number" 
+                                  Required="true"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" 
+                                  @bind-Value="createModel.Password" 
+                                  Label="Password" 
+                                  Required="true"
+                                  InputType="InputType.Password"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Minimum 6 characters" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSelect T="string" 
+                               @bind-Value="createModel.Role" 
+                               Label="Role" 
+                               Required="true"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("Employee")">Employee</MudSelectItem>
+                        <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseCreateDialog" Color="Color.Default">Cancel</MudButton>
+        <MudButton OnClick="CreateEmployee" Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!createFormValid || isCreating)">
+            @if (isCreating)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ml-2">Creating...</MudText>
+            }
+            else
+            {
+                <MudText>Create Employee</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Change Role Dialog -->
+<MudDialog @bind-Visible="showChangeRoleDialog" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Class="mr-2" />
+            Change Employee Role
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (selectedEmployee != null)
+        {
+            <MudStack Spacing="3">
+                <MudText>Change role for <strong>@selectedEmployee.FirstName @selectedEmployee.LastName</strong></MudText>
+                <MudSelect T="string" 
+                           @bind-Value="newRole" 
+                           Label="New Role" 
+                           Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("Employee")">Employee</MudSelectItem>
+                    <MudSelectItem Value="@("Admin")">Admin</MudSelectItem>
+                    <MudSelectItem Value="@("Customer")">Customer</MudSelectItem>
+                </MudSelect>
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseChangeRoleDialog" Color="Color.Default">Cancel</MudButton>
+        <MudButton OnClick="ChangeEmployeeRole" Color="Color.Primary" Variant="Variant.Filled" Disabled="isChangingRole">
+            @if (isChangingRole)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ml-2">Changing...</MudText>
+            }
+            else
+            {
+                <MudText>Change Role</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Delete Confirmation Dialog -->
+<MudDialog @bind-Visible="showDeleteDialog" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Color="Color.Error">
+            <MudIcon Icon="@Icons.Material.Filled.DeleteForever" Class="mr-2" />
+            Delete Employee
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (selectedEmployee != null)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+                Are you sure you want to delete <strong>@selectedEmployee.FirstName @selectedEmployee.LastName</strong>? This action cannot be undone.
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseDeleteDialog" Color="Color.Default">Cancel</MudButton>
+        <MudButton OnClick="DeleteEmployee" Color="Color.Error" Variant="Variant.Filled" Disabled="isDeleting">
+            @if (isDeleting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ml-2">Deleting...</MudText>
+            }
+            else
+            {
+                <MudText>Delete</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<EmployeeModel> employees = new();
+    private List<EmployeeModel> filteredEmployees = new();
+    private string searchTerm = string.Empty;
+    private bool isLoading = true;
+    private bool isAdmin = false;
+
+    // Create dialog
+    private bool showCreateDialog = false;
+    private bool createFormValid = false;
+    private bool isCreating = false;
+    private MudForm? createForm;
+    private CreateEmployeeModel createModel = new();
+
+    // Change role dialog
+    private bool showChangeRoleDialog = false;
+    private bool isChangingRole = false;
+    private EmployeeModel? selectedEmployee = null;
+    private string newRole = "Employee";
+
+    // Delete dialog
+    private bool showDeleteDialog = false;
+    private bool isDeleting = false;
+
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        
+        var role = await AuthService.GetRoleAsync();
+        isAdmin = role == "Admin";
+
+        if (!isAdmin)
+        {
+            isLoading = false;
+            return;
+        }
+
+        await LoadEmployees();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        FilterEmployees();
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task LoadEmployees()
+    {
+        isLoading = true;
+        try
+        {
+            employees = await ApiService.GetEmployeesAsync();
+            FilterEmployees();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading employees: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FilterEmployees()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredEmployees = employees;
+        }
+        else
+        {
+            var term = searchTerm.ToLower();
+            filteredEmployees = employees.Where(e =>
+                e.FirstName.ToLower().Contains(term) ||
+                e.LastName.ToLower().Contains(term) ||
+                e.Email.ToLower().Contains(term)
+            ).ToList();
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        createModel = new CreateEmployeeModel { Role = "Employee" };
+        showCreateDialog = true;
+    }
+
+    private void CloseCreateDialog()
+    {
+        showCreateDialog = false;
+        createModel = new();
+    }
+
+    private async Task CreateEmployee()
+    {
+        if (!createFormValid) return;
+
+        isCreating = true;
+        try
+        {
+            var result = await ApiService.CreateEmployeeAsync(createModel);
+            
+            if (result != null)
+            {
+                Snackbar.Add($"Employee {createModel.FirstName} {createModel.LastName} created successfully!", Severity.Success);
+                await LoadEmployees();
+                CloseCreateDialog();
+            }
+            else
+            {
+                Snackbar.Add("Failed to create employee", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error creating employee: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isCreating = false;
+        }
+    }
+
+    private void OpenChangeRoleDialog(EmployeeModel employee)
+    {
+        selectedEmployee = employee;
+        newRole = employee.Roles.FirstOrDefault() ?? "Employee";
+        showChangeRoleDialog = true;
+    }
+
+    private void CloseChangeRoleDialog()
+    {
+        showChangeRoleDialog = false;
+        selectedEmployee = null;
+        newRole = "Employee";
+    }
+
+    private async Task ChangeEmployeeRole()
+    {
+        if (selectedEmployee == null) return;
+
+        isChangingRole = true;
+        try
+        {
+            var success = await ApiService.UpdateUserRoleAsync(selectedEmployee.Id, newRole);
+            
+            if (success)
+            {
+                Snackbar.Add($"Role changed successfully!", Severity.Success);
+                await LoadEmployees();
+                CloseChangeRoleDialog();
+            }
+            else
+            {
+                Snackbar.Add("Failed to change role", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error changing role: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isChangingRole = false;
+        }
+    }
+
+    private void OpenDeleteDialog(EmployeeModel employee)
+    {
+        selectedEmployee = employee;
+        showDeleteDialog = true;
+    }
+
+    private void CloseDeleteDialog()
+    {
+        showDeleteDialog = false;
+        selectedEmployee = null;
+    }
+
+    private async Task DeleteEmployee()
+    {
+        if (selectedEmployee == null) return;
+
+        isDeleting = true;
+        try
+        {
+            var success = await ApiService.DeleteUserAsync(selectedEmployee.Id);
+            
+            if (success)
+            {
+                Snackbar.Add($"Employee deleted successfully!", Severity.Success);
+                await LoadEmployees();
+                CloseDeleteDialog();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete employee", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting employee: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    private Color GetRoleColor(string role)
+    {
+        return role switch
+        {
+            "Admin" => Color.Error,
+            "Employee" => Color.Info,
+            "Customer" => Color.Default,
+            _ => Color.Default
+        };
+    }
+}

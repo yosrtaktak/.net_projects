@@ -5,6 +5,7 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @using Frontend.Models
+@using Frontend.Services
 
 <PageTitle>My Rentals - Car Rental System</PageTitle>
 
@@ -139,6 +140,15 @@
                                                                OnClick="@(() => ReportDamage(rental.Id))">
                                                         Report Damage
                                                     </MudButton>
+                                                    
+                                                    <MudButton Variant="Variant.Text" 
+                                                               Color="Color.Info" 
+                                                               FullWidth="true"
+                                                               Size="Size.Small"
+                                                               StartIcon="@Icons.Material.Filled.Info"
+                                                               OnClick="@(() => ViewDamageReports(rental.Id))">
+                                                        View Reports
+                                                    </MudButton>
                                                 }
                                                 
                                                 @if (rental.Status == RentalStatus.Reserved)
@@ -173,10 +183,81 @@
     </MudStack>
 </MudContainer>
 
+<!-- Damage Reports Dialog -->
+<MudDialog @bind-Visible="showDamageReportsDialog" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Class="mr-2" />
+            Damage Reports for Rental #@selectedRentalId
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (isLoadingDamages)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (!damageReports.Any())
+        {
+            <MudAlert Severity="Severity.Info">No damage reports found for this rental.</MudAlert>
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                @foreach (var damage in damageReports)
+                {
+                    <MudCard Elevation="1">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetSeverityColor(damage.Severity)">
+                                        @damage.Severity Severity
+                                    </MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetDamageStatusColor(damage.Status)">
+                                        @damage.Status
+                                    </MudChip>
+                                </MudStack>
+                                
+                                <MudText Typo="Typo.body2">
+                                    <strong>Description:</strong> @damage.Description
+                                </MudText>
+                                
+                                <MudStack Row="true" Spacing="4">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        <strong>Reported:</strong> @damage.ReportedDate.ToString("MMM dd, yyyy")
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        <strong>Cost:</strong> $@damage.RepairCost.ToString("N2")
+                                    </MudText>
+                                </MudStack>
+                                
+                                @if (!string.IsNullOrEmpty(damage.ReportedBy))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        <strong>Reported by:</strong> @damage.ReportedBy
+                                    </MudText>
+                                }
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => showDamageReportsDialog = false)" Color="Color.Primary">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
 @code {
     private List<Rental> myRentals = new();
+    private List<VehicleDamageDto> damageReports = new();
     private bool isLoading = true;
+    private bool isLoadingDamages = false;
+    private bool showDamageReportsDialog = false;
+    private int selectedRentalId = 0;
     private int activeTab = 0;
+
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
 
     protected override async Task OnInitializedAsync()
     {
@@ -188,12 +269,8 @@
         isLoading = true;
         try
         {
-            var username = await AuthService.GetUsernameAsync();
-            var allRentals = await ApiService.GetRentalsAsync();
-            
-            // Filter to only show current user's rentals
-            myRentals = allRentals
-                .Where(r => r.Customer?.Email == username)
+            // Use the new /api/customers/me/rentals endpoint
+            myRentals = (await ApiService.GetMyRentalsAsync())
                 .OrderByDescending(r => r.StartDate)
                 .ToList();
         }
@@ -222,6 +299,41 @@
     private void ReportDamage(int rentalId)
     {
         NavigationManager.NavigateTo($"/rentals/{rentalId}/report-damage");
+    }
+
+    private async Task ViewDamageReports(int rentalId)
+    {
+        selectedRentalId = rentalId;
+        showDamageReportsDialog = true;
+        isLoadingDamages = true;
+        
+        try
+        {
+            var damages = await ApiService.GetDamagesByRentalAsync(rentalId);
+            damageReports = damages.Select(d => new VehicleDamageDto
+            {
+                Id = d.Id,
+                VehicleId = d.VehicleId,
+                RentalId = d.RentalId,
+                ReportedDate = d.ReportedDate,
+                Description = d.Description,
+                Severity = d.Severity,
+                RepairCost = d.RepairCost,
+                RepairedDate = d.RepairedDate,
+                ReportedBy = d.ReportedBy,
+                ImageUrl = d.ImageUrl,
+                Status = d.Status
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading damage reports: {ex.Message}", Severity.Error);
+            damageReports = new List<VehicleDamageDto>();
+        }
+        finally
+        {
+            isLoadingDamages = false;
+        }
     }
 
     private async Task CancelRental(int rentalId)
@@ -253,6 +365,30 @@
             RentalStatus.Active => Color.Success,
             RentalStatus.Completed => Color.Default,
             RentalStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetSeverityColor(DamageSeverity severity)
+    {
+        return severity switch
+        {
+            DamageSeverity.Minor => Color.Info,
+            DamageSeverity.Moderate => Color.Warning,
+            DamageSeverity.Major => Color.Error,
+            DamageSeverity.Critical => Color.Dark,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetDamageStatusColor(DamageStatus status)
+    {
+        return status switch
+        {
+            DamageStatus.Reported => Color.Warning,
+            DamageStatus.UnderRepair => Color.Info,
+            DamageStatus.Repaired => Color.Success,
+            DamageStatus.Unresolved => Color.Error,
             _ => Color.Default
         };
     }

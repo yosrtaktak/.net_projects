@@ -1,0 +1,6 @@
+            <MudTextField T="string" Label="Description" @bind-Value="damageModel.Description" 
+                          Lines="3" Required="true" />
+            <MudNumericField T="decimal?" Label="Estimated Repair Cost" @bind-Value="damageModel.RepairCost" 
+                             Min="0" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+            <MudTextField T="string" Label="Reported By" @bind-Value="damageModel.ReportedBy" />
+            <MudTextField T="string" Label="Image URL" @bind-Value="damageModel.ImageUrl" />

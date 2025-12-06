@@ -67,12 +67,12 @@ public class VehiclesController : ControllerBase
                 r.StartMileage,
                 r.EndMileage,
                 r.Notes,
-                Customer = new
+                User = new
                 {
-                    r.Customer.Id,
-                    r.Customer.FirstName,
-                    r.Customer.LastName,
-                    r.Customer.Email
+                    r.User.Id,
+                    r.User.FirstName,
+                    r.User.LastName,
+                    r.User.Email
                 }
             })
             .ToList();
@@ -217,13 +217,13 @@ public class VehiclesController : ControllerBase
                 r.EndMileage,
                 r.Notes,
                 r.CreatedAt,
-                Customer = new
+                User = new
                 {
-                    r.Customer.Id,
-                    r.Customer.FirstName,
-                    r.Customer.LastName,
-                    r.Customer.Email,
-                    r.Customer.PhoneNumber
+                    r.User.Id,
+                    r.User.FirstName,
+                    r.User.LastName,
+                    r.User.Email,
+                    r.User.PhoneNumber
                 },
                 DistanceDriven = (r.EndMileage.HasValue && r.StartMileage.HasValue) 
                     ? r.EndMileage.Value - r.StartMileage.Value 

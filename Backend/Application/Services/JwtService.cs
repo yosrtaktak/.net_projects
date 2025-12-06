@@ -29,8 +29,9 @@ public class JwtService : IJwtService
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
-            new Claim(ClaimTypes.Email, user.Email ?? string.Empty)
+            new Claim(ClaimTypes.Name, user.Email ?? string.Empty), // Changed: Use email as Name for User.Identity.Name
+            new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+            new Claim("username", user.UserName ?? string.Empty) // Add username as custom claim
         };
 
         // Ajouter les rôles

@@ -3,61 +3,70 @@
 @inject NavigationManager Navigation
 
 <MudLayout>
-    <MudDrawer @bind-Open="@_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
-        <MudDrawerHeader>
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudDrawer @bind-Open="@_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always" Variant="@DrawerVariant.Mini" OpenMiniOnHover="false">
+        <MudDrawerHeader Class="px-4 py-4" Style="min-height: 80px; border-bottom: 1px solid var(--mud-palette-divider);">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
                 <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" Size="Size.Large" />
                 <MudStack Spacing="0">
-                    <MudText Typo="Typo.h6">Car Rental</MudText>
+                    <MudText Typo="Typo.h6" Style="font-weight: 600;">Car Rental</MudText>
                     <MudText Typo="Typo.caption" Color="Color.Secondary">@userRole Portal</MudText>
                 </MudStack>
             </MudStack>
         </MudDrawerHeader>
-        <MudNavMenu>
-            <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+        
+        <MudNavMenu Class="px-2 py-2">
+            <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard" Class="mb-1">
+                Dashboard
+            </MudNavLink>
             
             @if (isAdmin)
             {
                 <!-- Admin-only navigation -->
-                <MudNavGroup Title="Fleet Management" Icon="@Icons.Material.Filled.DirectionsCar" Expanded="true">
+                <MudNavGroup Title="Fleet Management" Icon="@Icons.Material.Filled.DirectionsCar" Expanded="true" Class="mb-1">
                     <MudNavLink Href="/vehicles/manage" Icon="@Icons.Material.Filled.Settings">Manage Vehicles</MudNavLink>
                     <MudNavLink Href="/maintenances" Icon="@Icons.Material.Filled.Build">Maintenance</MudNavLink>
                     <MudNavLink Href="/damages" Icon="@Icons.Material.Filled.Warning">Damages</MudNavLink>
                 </MudNavGroup>
                 
-                <MudNavGroup Title="Business Management" Icon="@Icons.Material.Filled.Business" Expanded="true">
+                <MudNavGroup Title="Business Management" Icon="@Icons.Material.Filled.Business" Expanded="true" Class="mb-1">
                     <MudNavLink Href="/rentals/manage" Icon="@Icons.Material.Filled.EventNote">All Rentals</MudNavLink>
                     <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People">Customers</MudNavLink>
                     <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.Assessment">Reports</MudNavLink>
+                </MudNavGroup>
+                
+                <MudNavGroup Title="System Management" Icon="@Icons.Material.Filled.Settings" Expanded="false" Class="mb-1">
+                    <MudNavLink Href="/admin/categories" Icon="@Icons.Material.Filled.Category">Categories</MudNavLink>
+                    <MudNavLink Href="/admin/employees" Icon="@Icons.Material.Filled.SupervisedUserCircle">Employees</MudNavLink>
                 </MudNavGroup>
             }
             else
             {
                 <!-- Employee navigation -->
-                <MudNavLink Href="/vehicles/manage" Icon="@Icons.Material.Filled.DirectionsCar">Manage Vehicles</MudNavLink>
-                <MudNavLink Href="/rentals/manage" Icon="@Icons.Material.Filled.EventNote">Manage Rentals</MudNavLink>
-                <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People">Customers</MudNavLink>
-                <MudNavLink Href="/maintenances" Icon="@Icons.Material.Filled.Build">Maintenance</MudNavLink>
-                <MudNavLink Href="/damages" Icon="@Icons.Material.Filled.Warning">Damages</MudNavLink>
+                <MudNavLink Href="/vehicles/manage" Icon="@Icons.Material.Filled.DirectionsCar" Class="mb-1">Manage Vehicles</MudNavLink>
+                <MudNavLink Href="/rentals/manage" Icon="@Icons.Material.Filled.EventNote" Class="mb-1">Manage Rentals</MudNavLink>
+                <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People" Class="mb-1">Customers</MudNavLink>
+                <MudNavLink Href="/maintenances" Icon="@Icons.Material.Filled.Build" Class="mb-1">Maintenance</MudNavLink>
+                <MudNavLink Href="/damages" Icon="@Icons.Material.Filled.Warning" Class="mb-1">Damages</MudNavLink>
             }
         </MudNavMenu>
         
         <MudSpacer />
         
-        <MudDivider />
-        <MudStack Class="pa-4" Spacing="2">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <MudAvatar Color="Color.Primary" Size="Size.Small">
+        <MudDivider Class="my-2" />
+        <MudStack Class="px-4 py-3" Spacing="3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudAvatar Color="Color.Primary" Size="Size.Small" Style="font-weight: 600;">
                     @GetInitials()
                 </MudAvatar>
-                <MudStack Spacing="0" Style="flex: 1;">
-                    <MudText Typo="Typo.body2"><strong>@username</strong></MudText>
+                <MudStack Spacing="0" Style="flex: 1; min-width: 0;">
+                    <MudText Typo="Typo.body2" Style="font-weight: 600; overflow: hidden; text-overflow: ellipsis;">@username</MudText>
                     <MudText Typo="Typo.caption" Color="Color.Secondary">@userRole</MudText>
                 </MudStack>
             </MudStack>
             <MudButton Variant="Variant.Outlined" 
                        Color="Color.Error" 
                        FullWidth="true" 
+                       Size="Size.Small"
                        StartIcon="@Icons.Material.Filled.Logout"
                        OnClick="HandleLogout">
                 Logout
@@ -65,14 +74,14 @@
         </MudStack>
     </MudDrawer>
 
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="py-4" Style="min-height: calc(100vh - 150px);">
+    <MudMainContent Style="background-color: #f5f5f5;">
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="py-6 px-4" Style="min-height: calc(100vh - 80px);">
             @Body
         </MudContainer>
         
         <!-- Admin Footer -->
-        <MudPaper Elevation="0" Square="true" Class="mt-auto" Style="background-color: var(--mud-palette-surface); border-top: 1px solid var(--mud-palette-divider);">
-            <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="py-4">
+        <MudPaper Elevation="0" Square="true" Class="mt-auto" Style="background-color: white; border-top: 1px solid var(--mud-palette-divider);">
+            <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="py-3">
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
                         &copy; @DateTime.Now.Year Car Rental System - @userRole Portal

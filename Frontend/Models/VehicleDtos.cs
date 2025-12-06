@@ -4,6 +4,7 @@ public enum VehicleCategory
 {
     Economy,
     Compact,
+    Midsize,
     SUV,
     Luxury,
     Sports,
@@ -25,6 +26,14 @@ public class Vehicle
     public string Brand { get; set; } = string.Empty;
     public string Model { get; set; } = string.Empty;
     public string RegistrationNumber { get; set; } = string.Empty;
+
+    // Alias property for API compatibility
+    public string LicensePlate
+    {
+        get => RegistrationNumber;
+        set => RegistrationNumber = value;
+    }
+
     public int Year { get; set; }
     public VehicleCategory Category { get; set; }
     public decimal DailyRate { get; set; }

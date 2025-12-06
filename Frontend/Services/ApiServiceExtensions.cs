@@ -160,7 +160,7 @@ public static class ApiServiceExtensions
     {
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"api/vehicledamages/{id}/complete-repair", request);
+            var response = await httpClient.PutAsJsonAsync($"api/vehicledamages/{id}/repair", request);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)

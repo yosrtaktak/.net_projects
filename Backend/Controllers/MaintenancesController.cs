@@ -32,12 +32,11 @@ public class MaintenancesController : ControllerBase
     public async Task<ActionResult<IEnumerable<Maintenance>>> GetAllMaintenances(
         [FromQuery] MaintenanceFilterDto? filter = null)
     {
-        IEnumerable<Maintenance> maintenances;
+        // Get maintenances with includes for Vehicle
+        var maintenances = await _maintenanceRepository.GetAllWithDetailsAsync();
 
         if (filter != null)
         {
-            maintenances = await _maintenanceRepository.GetAllAsync();
-
             if (filter.VehicleId.HasValue)
                 maintenances = maintenances.Where(m => m.VehicleId == filter.VehicleId.Value);
 
@@ -60,10 +59,6 @@ public class MaintenancesController : ControllerBase
                     m.Status == MaintenanceStatus.Scheduled && m.ScheduledDate < today);
             }
         }
-        else
-        {
-            maintenances = await _maintenanceRepository.GetAllAsync();
-        }
 
         return Ok(maintenances.OrderByDescending(m => m.ScheduledDate));
     }
@@ -73,7 +68,7 @@ public class MaintenancesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<Maintenance>> GetMaintenance(int id)
     {
-        var maintenance = await _maintenanceRepository.GetByIdWithVehicleAsync(id);
+        var maintenance = await _maintenanceRepository.GetByIdWithDetailsAsync(id);
         
         if (maintenance == null)
         {
@@ -174,7 +169,7 @@ public class MaintenancesController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<Maintenance>> UpdateMaintenance(int id, [FromBody] UpdateMaintenanceDto dto)
     {
-        var maintenance = await _maintenanceRepository.GetByIdWithVehicleAsync(id);
+        var maintenance = await _maintenanceRepository.GetByIdWithDetailsAsync(id);
         
         if (maintenance == null)
         {
@@ -212,7 +207,7 @@ public class MaintenancesController : ControllerBase
     [HttpPut("{id}/complete")]
     public async Task<ActionResult<Maintenance>> CompleteMaintenance(int id, [FromBody] CompleteMaintenanceDto dto)
     {
-        var maintenance = await _maintenanceRepository.GetByIdWithVehicleAsync(id);
+        var maintenance = await _maintenanceRepository.GetByIdWithDetailsAsync(id);
         
         if (maintenance == null)
         {
@@ -259,7 +254,7 @@ public class MaintenancesController : ControllerBase
     [HttpPut("{id}/cancel")]
     public async Task<ActionResult<Maintenance>> CancelMaintenance(int id)
     {
-        var maintenance = await _maintenanceRepository.GetByIdWithVehicleAsync(id);
+        var maintenance = await _maintenanceRepository.GetByIdWithDetailsAsync(id);
         
         if (maintenance == null)
         {
@@ -273,6 +268,24 @@ public class MaintenancesController : ControllerBase
 
         maintenance.Status = MaintenanceStatus.Cancelled;
         _maintenanceRepository.Update(maintenance);
+
+        // Update vehicle status if it was in Maintenance
+        if (maintenance.Vehicle.Status == VehicleStatus.Maintenance)
+        {
+            // Check if there are other pending maintenances for this vehicle
+            var pendingMaintenances = await _maintenanceRepository.GetMaintenancesByVehicleAsync(maintenance.VehicleId);
+            var hasPendingMaintenance = pendingMaintenances.Any(m => 
+                m.Id != id && 
+                (m.Status == MaintenanceStatus.Scheduled || m.Status == MaintenanceStatus.InProgress));
+
+            if (!hasPendingMaintenance)
+            {
+                // No more pending maintenance, set vehicle back to Available
+                maintenance.Vehicle.Status = VehicleStatus.Available;
+                _vehicleRepository.Update(maintenance.Vehicle);
+            }
+        }
+
         await _unitOfWork.CommitAsync();
 
         return Ok(maintenance);
@@ -284,15 +297,36 @@ public class MaintenancesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteMaintenance(int id)
     {
-        var maintenance = await _maintenanceRepository.GetByIdAsync(id);
+        var maintenance = await _maintenanceRepository.GetByIdWithDetailsAsync(id);
         
         if (maintenance == null)
         {
             return NotFound(new { message = "Maintenance record not found" });
         }
 
+        var vehicleId = maintenance.VehicleId;
+        var vehicle = await _vehicleRepository.GetByIdAsync(vehicleId);
+
         _maintenanceRepository.Remove(maintenance);
         await _unitOfWork.CommitAsync();
+
+        // Update vehicle status if it was in Maintenance
+        if (vehicle != null && vehicle.Status == VehicleStatus.Maintenance)
+        {
+            // Check if there are other pending maintenances for this vehicle
+            var remainingMaintenances = await _maintenanceRepository.GetMaintenancesByVehicleAsync(vehicleId);
+            var hasPendingMaintenance = remainingMaintenances.Any(m => 
+                m.Status == MaintenanceStatus.Scheduled || 
+                m.Status == MaintenanceStatus.InProgress);
+
+            if (!hasPendingMaintenance)
+            {
+                // No more pending maintenance, set vehicle back to Available
+                vehicle.Status = VehicleStatus.Available;
+                _vehicleRepository.Update(vehicle);
+                await _unitOfWork.CommitAsync();
+            }
+        }
 
         return NoContent();
     }

@@ -66,4 +66,19 @@ public class MaintenanceRepository : Repository<Maintenance>, IMaintenanceReposi
             .Include(m => m.Vehicle)
             .FirstOrDefaultAsync(m => m.Id == id);
     }
+
+    public async Task<IEnumerable<Maintenance>> GetAllWithDetailsAsync()
+    {
+        return await _context.Maintenances
+            .Include(m => m.Vehicle)
+            .OrderByDescending(m => m.ScheduledDate)
+            .ToListAsync();
+    }
+
+    public async Task<Maintenance?> GetByIdWithDetailsAsync(int id)
+    {
+        return await _context.Maintenances
+            .Include(m => m.Vehicle)
+            .FirstOrDefaultAsync(m => m.Id == id);
+    }
 }

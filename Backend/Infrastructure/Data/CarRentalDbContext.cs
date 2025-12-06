@@ -12,15 +12,34 @@ public class CarRentalDbContext : IdentityDbContext<ApplicationUser>
     }
 
     public DbSet<Vehicle> Vehicles { get; set; }
-    public DbSet<Customer> Customers { get; set; }
     public DbSet<Rental> Rentals { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<Maintenance> Maintenances { get; set; }
     public DbSet<VehicleDamage> VehicleDamages { get; set; }
+    public DbSet<Category> Categories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder); // Important pour Identity!
+
+        // ApplicationUser configuration
+        modelBuilder.Entity<ApplicationUser>(entity =>
+        {
+            entity.Property(e => e.DriverLicenseNumber).HasMaxLength(50);
+            entity.Property(e => e.Address).HasMaxLength(500);
+            
+            // Unique index on DriverLicenseNumber (if not null)
+            entity.HasIndex(e => e.DriverLicenseNumber).IsUnique().HasFilter("[DriverLicenseNumber] IS NOT NULL");
+        });
+
+        // Category configuration
+        modelBuilder.Entity<Category>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Description).HasMaxLength(200);
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
 
         // Vehicle configuration
         modelBuilder.Entity<Vehicle>(entity =>
@@ -33,24 +52,16 @@ public class CarRentalDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(e => e.DailyRate).HasColumnType("decimal(18,2)");
         });
 
-        // Customer configuration
-        modelBuilder.Entity<Customer>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Email).IsRequired();
-            entity.HasIndex(e => e.Email).IsUnique();
-            entity.HasIndex(e => e.DriverLicenseNumber).IsUnique();
-        });
-
-        // Rental configuration
+        // Rental configuration - Updated to use ApplicationUser
         modelBuilder.Entity<Rental>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.TotalCost).HasColumnType("decimal(18,2)");
             
-            entity.HasOne(e => e.Customer)
-                .WithMany(c => c.Rentals)
-                .HasForeignKey(e => e.CustomerId)
+            // Changed from Customer to ApplicationUser
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Rentals)
+                .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
             
             entity.HasOne(e => e.Vehicle)
@@ -166,22 +177,8 @@ public class CarRentalDbContext : IdentityDbContext<ApplicationUser>
             }
         );
 
-        // Seed Sample Customer
-        modelBuilder.Entity<Customer>().HasData(
-            new Customer
-            {
-                Id = 1,
-                FirstName = "John",
-                LastName = "Doe",
-                Email = "john.doe@example.com",
-                PhoneNumber = "+1234567890",
-                DriverLicenseNumber = "DL123456",
-                DateOfBirth = new DateTime(1990, 5, 15),
-                Address = "123 Main St, City, Country",
-                RegistrationDate = new DateTime(2024, 1, 1),
-                Tier = CustomerTier.Gold
-            }
-        );
+        // Note: Customer seed data removed - users are managed through Identity
+        // Sample customer will be created through registration
 
         // Seed vehicle history data for testing
         modelBuilder.SeedVehicleHistory();

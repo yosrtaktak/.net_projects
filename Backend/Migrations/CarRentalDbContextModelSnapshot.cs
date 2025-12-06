@@ -30,12 +30,23 @@ namespace Backend.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DriverLicenseNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -76,8 +87,14 @@ namespace Backend.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<DateTime>("RegistrationDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Tier")
+                        .HasColumnType("int");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
@@ -87,6 +104,10 @@ namespace Backend.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DriverLicenseNumber")
+                        .IsUnique()
+                        .HasFilter("[DriverLicenseNumber] IS NOT NULL");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -99,7 +120,7 @@ namespace Backend.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("Backend.Core.Entities.Customer", b =>
+            modelBuilder.Entity("Backend.Core.Entities.Category", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -107,64 +128,39 @@ namespace Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Address")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("DateOfBirth")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("DriverLicenseNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("RegistrationDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Tier")
+                    b.Property<int>("DisplayOrder")
                         .HasColumnType("int");
+
+                    b.Property<string>("IconUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("PriceMultiplier")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DriverLicenseNumber")
+                    b.HasIndex("Name")
                         .IsUnique();
 
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.ToTable("Customers", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Address = "123 Main St, City, Country",
-                            DateOfBirth = new DateTime(1990, 5, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DriverLicenseNumber = "DL123456",
-                            Email = "john.doe@example.com",
-                            FirstName = "John",
-                            LastName = "Doe",
-                            PhoneNumber = "+1234567890",
-                            RegistrationDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Tier = 2
-                        });
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Core.Entities.Maintenance", b =>
@@ -297,9 +293,6 @@ namespace Backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
@@ -321,78 +314,20 @@ namespace Backend.Migrations
                     b.Property<decimal>("TotalCost")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("VehicleId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerId");
+                    b.HasIndex("UserId");
 
                     b.HasIndex("VehicleId");
 
                     b.ToTable("Rentals", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            ActualReturnDate = new DateTime(2024, 1, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedAt = new DateTime(2024, 1, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 1,
-                            EndDate = new DateTime(2024, 1, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EndMileage = 15250,
-                            Notes = "Regular rental, vehicle returned in good condition",
-                            StartDate = new DateTime(2024, 1, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartMileage = 15000,
-                            Status = 2,
-                            TotalCost = 175.00m,
-                            VehicleId = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            ActualReturnDate = new DateTime(2024, 2, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedAt = new DateTime(2024, 2, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 1,
-                            EndDate = new DateTime(2024, 2, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EndMileage = 15480,
-                            Notes = "Weekend trip rental",
-                            StartDate = new DateTime(2024, 2, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartMileage = 15250,
-                            Status = 2,
-                            TotalCost = 175.00m,
-                            VehicleId = 1
-                        },
-                        new
-                        {
-                            Id = 3,
-                            ActualReturnDate = new DateTime(2024, 3, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedAt = new DateTime(2024, 3, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 1,
-                            EndDate = new DateTime(2024, 3, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EndMileage = 15820,
-                            Notes = "Business trip rental",
-                            StartDate = new DateTime(2024, 3, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartMileage = 15480,
-                            Status = 2,
-                            TotalCost = 245.00m,
-                            VehicleId = 1
-                        },
-                        new
-                        {
-                            Id = 4,
-                            ActualReturnDate = new DateTime(2024, 4, 6, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedAt = new DateTime(2024, 3, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 1,
-                            EndDate = new DateTime(2024, 4, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            EndMileage = 16000,
-                            Notes = "Returned 1 day late, extra charges applied",
-                            StartDate = new DateTime(2024, 4, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartMileage = 15820,
-                            Status = 2,
-                            TotalCost = 175.00m,
-                            VehicleId = 1
-                        });
                 });
 
             modelBuilder.Entity("Backend.Core.Entities.Vehicle", b =>
@@ -560,10 +495,9 @@ namespace Backend.Migrations
                         {
                             Id = 1,
                             Description = "Small scratch on rear bumper, likely from parking",
-                            RentalId = 2,
                             RepairCost = 150.00m,
                             RepairedDate = new DateTime(2024, 2, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ReportedBy = "John Doe",
+                            ReportedBy = "Customer",
                             ReportedDate = new DateTime(2024, 2, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Severity = 0,
                             Status = 2,
@@ -573,7 +507,6 @@ namespace Backend.Migrations
                         {
                             Id = 2,
                             Description = "Dent on driver's side door, moderate damage",
-                            RentalId = 3,
                             RepairCost = 450.00m,
                             RepairedDate = new DateTime(2024, 3, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             ReportedBy = "Admin Staff",
@@ -752,9 +685,9 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Core.Entities.Rental", b =>
                 {
-                    b.HasOne("Backend.Core.Entities.Customer", "Customer")
+                    b.HasOne("Backend.Core.Entities.ApplicationUser", "User")
                         .WithMany("Rentals")
-                        .HasForeignKey("CustomerId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -764,7 +697,7 @@ namespace Backend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Customer");
+                    b.Navigation("User");
 
                     b.Navigation("Vehicle");
                 });
@@ -838,7 +771,7 @@ namespace Backend.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Backend.Core.Entities.Customer", b =>
+            modelBuilder.Entity("Backend.Core.Entities.ApplicationUser", b =>
                 {
                     b.Navigation("Rentals");
                 });

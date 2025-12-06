@@ -82,7 +82,7 @@ public class VehicleDamagesController : ControllerBase
         {
             var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
             
-            if (damage.Rental?.Customer?.Email != User.Identity?.Name)
+            if (damage.Rental?.User?.Email != User.Identity?.Name)
             {
                 return Forbid();
             }
@@ -122,9 +122,9 @@ public class VehicleDamagesController : ControllerBase
         if (User.IsInRole("Customer"))
         {
             var userEmail = User.Identity?.Name;
-            var rentalWithCustomer = await _rentalRepository.GetRentalWithCustomerAsync(rentalId);
+            var rentalWithUser = await _rentalRepository.GetByIdWithDetailsAsync(rentalId);
             
-            if (rentalWithCustomer?.Customer?.Email != userEmail)
+            if (rentalWithUser?.User?.Email != userEmail)
             {
                 return Forbid();
             }
@@ -159,7 +159,7 @@ public class VehicleDamagesController : ControllerBase
         // If rental is specified, validate it exists
         if (dto.RentalId.HasValue)
         {
-            var rental = await _rentalRepository.GetRentalWithCustomerAsync(dto.RentalId.Value);
+            var rental = await _rentalRepository.GetByIdWithDetailsAsync(dto.RentalId.Value);
             if (rental == null)
             {
                 return NotFound(new { message = "Rental not found" });
@@ -169,7 +169,7 @@ public class VehicleDamagesController : ControllerBase
             if (User.IsInRole("Customer"))
             {
                 var userEmail = User.Identity?.Name;
-                if (rental.Customer?.Email != userEmail)
+                if (rental.User?.Email != userEmail)
                 {
                     return Forbid();
                 }

@@ -250,10 +250,11 @@
 
     private void RentVehicle(Vehicle vehicle)
     {
-        // Check if user is authenticated
-        // If not, redirect to login
-        // If yes, navigate to rental creation with vehicle pre-selected
-        NavigationManager.NavigateTo($"/rentals/create?vehicleId={vehicle.Id}");
+        // Navigate to customer booking page with vehicle pre-selected
+        if (vehicle != null)
+        {
+            NavigationManager.NavigateTo($"/book-vehicle/{vehicle.Id}");
+        }
     }
 
     private Color GetCategoryColor(VehicleCategory category)

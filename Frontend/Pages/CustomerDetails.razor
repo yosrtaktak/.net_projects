@@ -1,0 +1,550 @@
+@page "/customers/{id}"
+@layout AdminLayout
+@inject Frontend.Services.IApiService ApiService
+@inject Frontend.Services.IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject MudBlazor.ISnackbar Snackbar
+@using Frontend.Models
+
+<PageTitle>Customer Details - Car Rental System</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-0">
+    @if (isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (!isAuthorized)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-4">
+            <strong>Access Denied</strong> - Admin or Employee privileges required.
+        </MudAlert>
+    }
+    else if (customer == null)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="my-4">
+            <strong>Customer Not Found</strong> - The customer you're looking for doesn't exist.
+        </MudAlert>
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   Href="/customers">
+            Back to Customers
+        </MudButton>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <!-- Header -->
+            <MudPaper Elevation="0" Class="pa-4" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%); color: white;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h4" Style="font-weight: 600;">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-2" />
+                            @customer.FirstName @customer.LastName
+                        </MudText>
+                        <MudText Typo="Typo.body1" Style="opacity: 0.9;">
+                            Customer ID: #@customer.Id
+                        </MudText>
+                    </MudStack>
+                    <MudStack Row="true" Spacing="2">
+                        @if (isAdmin)
+                        {
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Success" 
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="OpenEditDialog"
+                                       Style="color: white;">
+                                Edit Customer
+                            </MudButton>
+                        }
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Surface" 
+                                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                                   Href="/customers"
+                                   Style="color: var(--mud-palette-primary);">
+                            Back to Customers
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+
+            <MudGrid>
+                <!-- Customer Information Card -->
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="2" Style="height: 100%; ">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+                                    Personal Information
+                                </MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudStack Spacing="3">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Secondary" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Full Name</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight: 500;">@customer.FirstName @customer.LastName</MudText>
+                                    </MudStack>
+                                </MudStack>
+
+                                <MudDivider />
+
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Email" Color="Color.Secondary" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Email Address</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight: 500;">@customer.Email</MudText>
+                                    </MudStack>
+                                </MudStack>
+
+                                <MudDivider />
+
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Phone" Color="Color.Secondary" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Phone Number</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight: 500;">@customer.PhoneNumber</MudText>
+                                    </MudStack>
+                                </MudStack>
+
+                                <MudDivider />
+
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.CreditCard" Color="Color.Secondary" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Driver License Number</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Style="font-family: monospace;">
+                                            @customer.DriverLicenseNumber
+                                        </MudChip>
+                                    </MudStack>
+                                </MudStack>
+
+                                <MudDivider />
+
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Cake" Color="Color.Secondary" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Date of Birth</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight: 500;">
+                                            @if (customer.DateOfBirth.HasValue)
+                                            {
+                                                @($"{customer.DateOfBirth.Value:MMMM dd, yyyy} ({CalculateAge(customer.DateOfBirth.Value)} years old)")
+                                            }
+                                            else
+                                            {
+                                                <text>N/A</text>
+                                            }
+                                        </MudText>
+                                    </MudStack>
+                                </MudStack>
+
+                                @if (!string.IsNullOrEmpty(customer.Address))
+                                {
+                                    <MudDivider />
+
+                                    <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Home" Color="Color.Secondary" />
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Address</MudText>
+                                            <MudText Typo="Typo.body1" Style="font-weight: 500;">@customer.Address</MudText>
+                                        </MudStack>
+                                    </MudStack>
+                                }
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Account Status Card -->
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="2" Style="height: 100%;">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                                    <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Class="mr-2" />
+                                    Account Status
+                                </MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudStack Spacing="3">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Color="Color.Secondary" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Registration Date</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight: 500;">@customer.RegistrationDate.ToString("MMMM dd, yyyy")</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Tertiary">Member for @CalculateMembershipDuration(customer.RegistrationDate)</MudText>
+                                    </MudStack>
+                                </MudStack>
+
+                                <MudDivider />
+
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Stars" Color="Color.Secondary" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Membership Tier</MudText>
+                                        <MudChip T="string" Size="Size.Medium" Color="@GetTierColor(customer.Tier)" Style="font-weight: 600;">
+                                            @customer.Tier
+                                        </MudChip>
+                                    </MudStack>
+                                </MudStack>
+
+                                <MudDivider />
+
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Secondary" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Rentals</MudText>
+                                        <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@customerRentals.Count</MudText>
+                                    </MudStack>
+                                </MudStack>
+
+                                @if (customerRentals.Any())
+                                {
+                                    <MudDivider />
+
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Secondary" />
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Total Spent</MudText>
+                                            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">$@CalculateTotalSpent().ToString("N2")</MudText>
+                                        </MudStack>
+                                    </MudStack>
+                                }
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Rental History -->
+                <MudItem xs="12">
+                    <MudCard Elevation="2">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                                    <MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2" />
+                                    Rental History
+                                </MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (loadingRentals)
+                            {
+                                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                            }
+                            else if (customerRentals.Any())
+                            {
+                                <MudTable Items="@customerRentals" Hover="true" Striped="true" Dense="true" Elevation="0">
+                                    <HeaderContent>
+                                        <MudTh Style="font-weight: 600;">Rental ID</MudTh>
+                                        <MudTh Style="font-weight: 600;">Vehicle</MudTh>
+                                        <MudTh Style="font-weight: 600;">Period</MudTh>
+                                        <MudTh Style="font-weight: 600;">Status</MudTh>
+                                        <MudTh Style="font-weight: 600;">Total Cost</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd DataLabel="Rental ID">
+                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">#@context.Id</MudText>
+                                        </MudTd>
+                                        <MudTd DataLabel="Vehicle">
+                                            @if (context.Vehicle != null)
+                                            {
+                                                <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.Vehicle.Brand @context.Vehicle.Model</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Vehicle.RegistrationNumber</MudText>
+                                            }
+                                            else
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">N/A</MudText>
+                                            }
+                                        </MudTd>
+                                        <MudTd DataLabel="Period">
+                                            <MudStack Spacing="0">
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    @context.StartDate.ToString("MMM dd, yyyy") - @context.EndDate.ToString("MMM dd, yyyy")
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                                                    @((context.EndDate - context.StartDate).Days) days
+                                                </MudText>
+                                            </MudStack>
+                                        </MudTd>
+                                        <MudTd DataLabel="Status">
+                                            <MudChip T="string" Size="Size.Small" Color="@GetRentalStatusColor(context.Status)" Style="font-weight: 600;">
+                                                @context.Status
+                                            </MudChip>
+                                        </MudTd>
+                                        <MudTd DataLabel="Total Cost">
+                                            <MudText Typo="Typo.body1" Style="font-weight: 600;" Color="Color.Success">$@context.TotalCost.ToString("N2")</MudText>
+                                        </MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            }
+                            else
+                            {
+                                <MudPaper Elevation="0" Class="pa-4 text-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.EventBusy" Size="Size.Large" Color="Color.Secondary" Style="opacity: 0.5;" />
+                                    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mt-2">
+                                        No rental history available for this customer.
+                                    </MudText>
+                                </MudPaper>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+        </MudStack>
+    }
+</MudContainer>
+
+<!-- Edit Customer Dialog -->
+<MudDialog @bind-Visible="showEditDialog" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-2" />
+            Edit Customer
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="editForm" @bind-IsValid="@editFormValid">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" 
+                                  @bind-Value="editModel.FirstName" 
+                                  Label="First Name" 
+                                  Required="true"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" 
+                                  @bind-Value="editModel.LastName" 
+                                  Label="Last Name" 
+                                  Required="true"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" 
+                                  @bind-Value="editModel.PhoneNumber" 
+                                  Label="Phone Number" 
+                                  Required="true"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" 
+                                  @bind-Value="editModel.DriverLicenseNumber" 
+                                  Label="Driver License Number" 
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="editModel.DateOfBirth"
+                                   Label="Date of Birth"
+                                   Variant="Variant.Outlined"
+                                   Editable="true"
+                                   MaxDate="DateTime.Today.AddYears(-18)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="CustomerTier" 
+                               @bind-Value="editModel.Tier" 
+                               Label="Membership Tier" 
+                               Variant="Variant.Outlined">
+                        <MudSelectItem Value="CustomerTier.Standard">Standard</MudSelectItem>
+                        <MudSelectItem Value="CustomerTier.Silver">Silver</MudSelectItem>
+                        <MudSelectItem Value="CustomerTier.Gold">Gold</MudSelectItem>
+                        <MudSelectItem Value="CustomerTier.Platinum">Platinum</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" 
+                                  @bind-Value="editModel.Address" 
+                                  Label="Address" 
+                                  Variant="Variant.Outlined"
+                                  Lines="2" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseEditDialog" Color="Color.Default">Cancel</MudButton>
+        <MudButton OnClick="SaveCustomerChanges" Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!editFormValid || isSaving)">
+            @if (isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ml-2">Saving...</MudText>
+            }
+            else
+            {
+                <MudText>Save Changes</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    private Customer? customer;
+    private List<Rental> customerRentals = new();
+    private bool isLoading = true;
+    private bool loadingRentals = true;
+    private bool isAuthorized = false;
+    private bool isAdmin = false;
+
+    // Edit dialog
+    private bool showEditDialog = false;
+    private bool editFormValid = false;
+    private bool isSaving = false;
+    private MudForm? editForm;
+    private UpdateCustomerModel editModel = new();
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        
+        var role = await AuthService.GetRoleAsync();
+        isAuthorized = role == "Admin" || role == "Employee";
+        isAdmin = role == "Admin";
+
+        if (!isAuthorized)
+        {
+            isLoading = false;
+            return;
+        }
+
+        await LoadCustomerData();
+        isLoading = false;
+    }
+
+    private async Task LoadCustomerData()
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(Id))
+            {
+                customer = await ApiService.GetUserByIdAsync(Id);
+                
+                if (customer != null)
+                {
+                    loadingRentals = true;
+                    customerRentals = new List<Rental>();
+                    loadingRentals = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading customer data: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OpenEditDialog()
+    {
+        if (customer == null) return;
+
+        editModel = new UpdateCustomerModel
+        {
+            FirstName = customer.FirstName,
+            LastName = customer.LastName,
+            PhoneNumber = customer.PhoneNumber,
+            DriverLicenseNumber = customer.DriverLicenseNumber,
+            DateOfBirth = customer.DateOfBirth,
+            Address = customer.Address,
+            Tier = customer.Tier
+        };
+
+        showEditDialog = true;
+    }
+
+    private void CloseEditDialog()
+    {
+        showEditDialog = false;
+        editModel = new();
+    }
+
+    private async Task SaveCustomerChanges()
+    {
+        if (customer == null || !editFormValid) return;
+
+        isSaving = true;
+        try
+        {
+            var success = await ApiService.UpdateCustomerAsync(customer.Id, editModel);
+            
+            if (success)
+            {
+                Snackbar.Add("Customer updated successfully!", Severity.Success);
+                await LoadCustomerData();
+                CloseEditDialog();
+            }
+            else
+            {
+                Snackbar.Add("Failed to update customer", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating customer: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private int CalculateAge(DateTime? dateOfBirth)
+    {
+        if (!dateOfBirth.HasValue) return 0;
+        
+        var today = DateTime.Today;
+        var age = today.Year - dateOfBirth.Value.Year;
+        if (dateOfBirth.Value.Date > today.AddYears(-age)) age--;
+        return age;
+    }
+    
+    private string CalculateMembershipDuration(DateTime registrationDate)
+    {
+        var duration = DateTime.Now - registrationDate;
+        
+        if (duration.TotalDays < 30)
+            return $"{(int)duration.TotalDays} days";
+        else if (duration.TotalDays < 365)
+            return $"{(int)(duration.TotalDays / 30)} months";
+        else
+        {
+            var years = (int)(duration.TotalDays / 365);
+            var months = (int)((duration.TotalDays % 365) / 30);
+            return months > 0 ? $"{years} years, {months} months" : $"{years} years";
+        }
+    }
+
+    private decimal CalculateTotalSpent()
+    {
+        return customerRentals.Sum(r => r.TotalCost);
+    }
+
+    private Color GetTierColor(CustomerTier tier)
+    {
+        return tier switch
+        {
+            CustomerTier.Standard => Color.Default,
+            CustomerTier.Silver => Color.Secondary,
+            CustomerTier.Gold => Color.Warning,
+            CustomerTier.Platinum => Color.Primary,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetRentalStatusColor(RentalStatus status)
+    {
+        return status switch
+        {
+            RentalStatus.Reserved => Color.Info,
+            RentalStatus.Active => Color.Success,
+            RentalStatus.Completed => Color.Default,
+            RentalStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+    }
+}
