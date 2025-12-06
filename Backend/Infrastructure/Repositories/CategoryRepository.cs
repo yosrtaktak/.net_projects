@@ -90,9 +90,8 @@ public class CategoryRepository : ICategoryRepository
 
     public async Task<int> GetVehicleCountAsync(int categoryId)
     {
-        // This counts vehicles that might reference this category name
-        // Since VehicleCategory is an enum, we'll return 0 for now
-        // In a future enhancement, you could add a CategoryId FK to Vehicle
-        return 0;
+        return await _context.Vehicles
+            .Where(v => v.CategoryId == categoryId)
+            .CountAsync();
     }
 }

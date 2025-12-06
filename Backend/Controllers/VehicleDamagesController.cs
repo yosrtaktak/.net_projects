@@ -181,6 +181,16 @@ public class VehicleDamagesController : ControllerBase
             return BadRequest(new { message = "Customers must report damage for a specific rental" });
         }
 
+        // Set default repair cost if not provided, based on severity
+        var repairCost = dto.RepairCost ?? dto.Severity switch
+        {
+            0 => 100m,  // Minor
+            1 => 300m,  // Moderate
+            2 => 800m,  // Major
+            3 => 2000m, // Critical
+            _ => 100m
+        };
+
         var damage = new VehicleDamage
         {
             VehicleId = dto.VehicleId,
@@ -188,7 +198,7 @@ public class VehicleDamagesController : ControllerBase
             ReportedDate = dto.ReportedDate,
             Description = dto.Description,
             Severity = (DamageSeverity)dto.Severity,
-            RepairCost = dto.RepairCost,
+            RepairCost = repairCost,
             ReportedBy = dto.ReportedBy ?? User.Identity?.Name ?? "Unknown",
             ImageUrl = dto.ImageUrl,
             Status = DamageStatus.Reported

@@ -1,6 +1,852 @@
+@page "/vehicles/manage"
+@layout AdminLayout
+@inject IApiService ApiService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject HttpClient HttpClient
+@using Frontend.Models
+@using Frontend.Services
+
+<PageTitle>Manage Fleet - Car Rental System</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="px-0">
+    @if (isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (!isAuthorized)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-4">
+            <strong>Access Denied</strong> - Admin or Employee privileges required.
+        </MudAlert>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <!-- Header -->
+            <MudPaper Elevation="0" Class="pa-4" Style="background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%); color: white;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h4" Style="font-weight: 600;">
+                            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="mr-2" />
+                            Fleet Management
+                        </MudText>
+                        <MudText Typo="Typo.body1" Style="opacity: 0.9;">
+                            Manage vehicles, categories, and fleet operations
+                        </MudText>
+                    </MudStack>
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Surface" 
+                               Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="OpenAddVehicleDialog"
+                               Style="color: var(--mud-palette-primary);">
+                        Add Vehicle
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+
+            @if (isLoading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else
+            {
+                <!-- Statistics Cards -->
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudPaper Elevation="2" Class="pa-4" Style="height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.h3" Style="font-weight: 700;">@vehicles.Count</MudText>
+                                        <MudText Typo="Typo.body2" Style="opacity: 0.9;">Total Vehicles</MudText>
+                                    </MudStack>
+                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Large" Style="opacity: 0.8;" />
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudPaper Elevation="2" Class="pa-4" Style="height: 100%; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;">
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.h3" Style="font-weight: 700;">@vehicles.Count(v => v.Status == VehicleStatus.Available)</MudText>
+                                        <MudText Typo="Typo.body2" Style="opacity: 0.9;">Available</MudText>
+                                    </MudStack>
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Style="opacity: 0.8;" />
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudPaper Elevation="2" Class="pa-4" Style="height: 100%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.h3" Style="font-weight: 700;">@vehicles.Count(v => v.Status == VehicleStatus.Maintenance)</MudText>
+                                        <MudText Typo="Typo.body2" Style="opacity: 0.9;">In Maintenance</MudText>
+                                    </MudStack>
+                                    <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Large" Style="opacity: 0.8;" />
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- Filters -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="3">
+                        <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                            <MudIcon Icon="@Icons.Material.Filled.FilterList" Size="Size.Small" Class="mr-2" />
+                            Filters
+                        </MudText>
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudSelect T="int?" 
+                                           Label="Category" 
+                                           @bind-Value="selectedCategoryId" 
+                                           Variant="Variant.Outlined"
+                                           Clearable="true" 
+                                           OnClearButtonClick="@(() => { selectedCategoryId = null; ApplyFilters(); })">
+                                    @foreach (var category in categories)
+                                    {
+                                        <MudSelectItem T="int?" Value="@category.Id">@category.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <MudSelect T="VehicleStatus?" 
+                                           Label="Status" 
+                                           @bind-Value="selectedStatus" 
+                                           Variant="Variant.Outlined"
+                                           Clearable="true" 
+                                           OnClearButtonClick="@(() => { selectedStatus = null; ApplyFilters(); })">
+                                    @foreach (var status in Enum.GetValues<VehicleStatus>())
+                                    {
+                                        <MudSelectItem T="VehicleStatus?" Value="@status">@status</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="4">
+                                <MudTextField T="string" 
+                                              Label="Search" 
+                                              @bind-Value="searchText" 
+                                              Immediate="true" 
+                                              Variant="Variant.Outlined"
+                                              Adornment="Adornment.Start" 
+                                              AdornmentIcon="@Icons.Material.Filled.Search"
+                                              Placeholder="Brand, Model, Registration..." />
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="2">
+                                <MudButton Variant="Variant.Outlined" 
+                                           Color="Color.Default" 
+                                           FullWidth="true" 
+                                           OnClick="ClearFilters" 
+                                           Style="height: 56px;">
+                                    Clear All
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudStack>
+                </MudPaper>
+
+                <!-- Vehicles Grid -->
+                @if (filteredVehicles.Any())
+                {
+                    <MudGrid Spacing="3">
+                        @foreach (var vehicle in filteredVehicles)
+                        {
+                            var vehicleDamages = allDamages.Where(d => d.VehicleId == vehicle.Id).ToList();
+                            var customerReportedDamages = vehicleDamages.Where(d => d.RentalId != null).ToList();
+                            var hasCustomerReports = customerReportedDamages.Any();
+                            
+                            <MudItem xs="12" sm="6" md="4" lg="3">
+                                <MudCard Elevation="3" Style="height: 100%; transition: transform 0.2s; cursor: pointer;" 
+                                         @onmouseover="@(() => {})"
+                                         Class="hover-lift">
+                                    @if (!string.IsNullOrEmpty(vehicle.ImageUrl))
+                                    {
+                                        <MudCardMedia Image="@vehicle.ImageUrl" Height="200" Style="object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div style="height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+                                            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Large" Style="color: white; font-size: 4rem;" />
+                                        </div>
+                                    }
+                                    
+                                    @if (hasCustomerReports)
+                                    {
+                                        <MudChip T="string" 
+                                                 Size="Size.Small" 
+                                                 Color="Color.Warning" 
+                                                 Icon="@Icons.Material.Filled.Report"
+                                                 Style="position: absolute; top: 10px; right: 10px; font-weight: 600;">
+                                            @customerReportedDamages.Count Customer Report@(customerReportedDamages.Count > 1 ? "s" : "")
+                                        </MudChip>
+                                    }
+                                    
+                                    <MudCardContent Class="pa-4">
+                                        <MudStack Spacing="2">
+                                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                                <MudText Typo="Typo.h6" Style="font-weight: 600;">@vehicle.Brand @vehicle.Model</MudText>
+                                                <MudChip T="string" Size="Size.Small" Color="GetStatusColor(vehicle.Status)" Style="font-weight: 600;">
+                                                    @vehicle.Status
+                                                </MudChip>
+                                            </MudStack>
+                                            <MudChip T="string" Size="Size.Small" Color="GetCategoryColor(vehicle.Category)" Variant="Variant.Outlined">
+                                                @vehicle.Category
+                                            </MudChip>
+                                            <MudDivider />
+                                            <MudStack Spacing="1">
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                                    <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" /> Year: @vehicle.Year
+                                                </MudText>
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                                    <MudIcon Icon="@Icons.Material.Filled.LocalGasStation" Size="Size.Small" /> @vehicle.FuelType
+                                                </MudText>
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small" /> @(vehicle.Mileage.ToString("N0")) km
+                                                </MudText>
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" /> @vehicle.RegistrationNumber
+                                                </MudText>
+                                            </MudStack>
+                                            
+                                            @if (vehicleDamages.Any())
+                                            {
+                                                <MudDivider />
+                                                <MudStack Spacing="1">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-weight: 600;">
+                                                        Damage Reports (@vehicleDamages.Count)
+                                                    </MudText>
+                                                    @foreach (var damage in vehicleDamages.Take(2))
+                                                    {
+                                                        <MudAlert Severity="@(damage.RentalId.HasValue ? Severity.Warning : Severity.Info)" 
+                                                                  Dense="true" 
+                                                                  NoIcon="false"
+                                                                  Style="padding: 4px 8px;">
+                                                            <MudStack Spacing="0">
+                                                                <MudText Typo="Typo.caption" Style="font-weight: 600;">
+                                                                    @if (damage.RentalId.HasValue)
+                                                                    {
+                                                                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" /> 
+                                                                        <text>Customer: @damage.ReportedBy</text>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Small" /> 
+                                                                        <text>Staff: @damage.ReportedBy</text>
+                                                                    }
+                                                                </MudText>
+                                                                <MudText Typo="Typo.caption">@damage.Severity - @damage.Status</MudText>
+                                                                <MudText Typo="Typo.caption">@damage.Description.Substring(0, Math.Min(50, damage.Description.Length))@(damage.Description.Length > 50 ? "..." : "")</MudText>
+                                                            </MudStack>
+                                                        </MudAlert>
+                                                    }
+                                                    @if (vehicleDamages.Count > 2)
+                                                    {
+                                                        <MudText Typo="Typo.caption" Color="Color.Primary" Style="cursor: pointer;" @onclick="@(() => OpenVehicleHistory(vehicle))">
+                                                            + @(vehicleDamages.Count - 2) more damage report(s)
+                                                        </MudText>
+                                                    }
+                                                </MudStack>
+                                            }
+                                            
+                                            <MudDivider />
+                                            <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">
+                                                $@(vehicle.DailyRate.ToString("N2"))/day
+                                            </MudText>
+                                        </MudStack>
+                                    </MudCardContent>
+                                    <MudCardActions Class="pa-3">
+                                        <MudStack Style="width: 100%;" Spacing="2">
+                                            <MudButton Variant="Variant.Filled" 
+                                                       Color="Color.Primary" 
+                                                       FullWidth="true" 
+                                                       StartIcon="@Icons.Material.Filled.Edit"
+                                                       OnClick="@(() => OpenEditVehicleDialog(vehicle))">
+                                                Edit Details
+                                            </MudButton>
+                                            <MudStack Row="true" Spacing="2">
+                                                <MudButton Variant="Variant.Outlined" 
+                                                           Color="Color.Warning" 
+                                                           FullWidth="true" 
+                                                           Size="Size.Small"
+                                                           StartIcon="@Icons.Material.Filled.Build"
+                                                           OnClick="@(() => OpenMaintenanceDialog(vehicle))">
+                                                    Maintenance
+                                                </MudButton>
+                                                <MudButton Variant="Variant.Outlined" 
+                                                           Color="Color.Error" 
+                                                           FullWidth="true" 
+                                                           Size="Size.Small"
+                                                           StartIcon="@Icons.Material.Filled.Warning"
+                                                           OnClick="@(() => OpenDamageDialog(vehicle))">
+                                                    Damage
+                                                </MudButton>
+                                            </MudStack>
+                                            @if (vehicleDamages.Any())
+                                            {
+                                                <MudButton Variant="Variant.Text" 
+                                                           Color="Color.Info" 
+                                                           FullWidth="true" 
+                                                           Size="Size.Small"
+                                                           StartIcon="@Icons.Material.Filled.History"
+                                                           OnClick="@(() => OpenVehicleHistory(vehicle))">
+                                                    View History (@vehicleDamages.Count)
+                                                </MudButton>
+                                            }
+                                            @if (isAdmin)
+                                            {
+                                                <MudButton Variant="Variant.Text" 
+                                                           Color="Color.Error" 
+                                                           FullWidth="true" 
+                                                           Size="Size.Small"
+                                                           StartIcon="@Icons.Material.Filled.Delete"
+                                                           OnClick="@(() => DeleteVehicle(vehicle))">
+                                                    Delete Vehicle
+                                                </MudButton>
+                                            }
+                                        </MudStack>
+                                    </MudCardActions>
+                                </MudCard>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+                else
+                {
+                    <MudPaper Elevation="2" Class="pa-8 text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" Style="font-size: 5rem; opacity: 0.5;" />
+                        <MudText Typo="Typo.h5" Color="Color.Secondary" Class="mt-4" Style="font-weight: 600;">No vehicles found</MudText>
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">Try adjusting your filters or search terms</MudText>
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Primary" 
+                                   Class="mt-4"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="OpenAddVehicleDialog">
+                            Add Your First Vehicle
+                        </MudButton>
+                    </MudPaper>
+                }
+            }
+        </MudStack>
+    }
+</MudContainer>
+
+<!-- Vehicle History Dialog -->
+<MudDialog @bind-Visible="showHistoryDialog" Options="new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true }">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="font-weight: 600;">
+            <MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2" />
+            Vehicle History - @selectedVehicle?.Brand @selectedVehicle?.Model
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (selectedVehicle != null)
+        {
+            var vehicleDamages = allDamages.Where(d => d.VehicleId == selectedVehicle.Id).OrderByDescending(d => d.ReportedDate).ToList();
+            
+            @if (vehicleDamages.Any())
+            {
+                <MudStack Spacing="3">
+                    @foreach (var damage in vehicleDamages)
+                    {
+                        var isCustomerReport = damage.RentalId.HasValue;
+                        
+                        <MudPaper Elevation="2" Class="pa-4" Style="@(isCustomerReport ? "border-left: 4px solid var(--mud-palette-warning);" : "")">
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        @if (isCustomerReport)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Filled.Person">
+                                                Customer Report
+                                            </MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Build">
+                                                Staff Report
+                                            </MudChip>
+                                        }
+                                        <MudChip T="string" Size="Size.Small" Color="GetSeverityColor(damage.Severity)">
+                                            @damage.Severity
+                                        </MudChip>
+                                        <MudChip T="string" Size="Size.Small" Color="GetDamageStatusColor(damage.Status)">
+                                            @damage.Status
+                                        </MudChip>
+                                    </MudStack>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @damage.ReportedDate.ToString("MMM dd, yyyy")
+                                    </MudText>
+                                </MudStack>
+                                
+                                <MudDivider />
+                                
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                        Reported by: @damage.ReportedBy
+                                        @if (damage.RentalId.HasValue)
+                                        {
+                                            <text> (Rental #@damage.RentalId)</text>
+                                        }
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">@damage.Description</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        <strong>Repair Cost:</strong> $@(damage.RepairCost.ToString("N2"))
+                                    </MudText>
+                                    @if (damage.RepairedDate.HasValue)
+                                    {
+                                        <MudText Typo="Typo.body2" Color="Color.Success">
+                                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />
+                                            Repaired on @damage.RepairedDate.Value.ToString("MMM dd, yyyy")
+                                        </MudText>
+                                    }
+                                    @if (!string.IsNullOrEmpty(damage.ImageUrl))
+                                    {
+                                        <MudDivider Class="my-2" />
+                                        <MudText Typo="Typo.body2" Style="font-weight: 600;" Class="mb-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Small" /> Damage Photo:
+                                        </MudText>
+                                        <MudPaper Elevation="1" Class="pa-2">
+                                            <MudImage Src="@damage.ImageUrl" 
+                                                      Alt="Damage photo" 
+                                                      ObjectFit="ObjectFit.Contain" 
+                                                      Height="300" 
+                                                      Width="100%"
+                                                      Class="rounded" />
+                                            <MudStack Row="true" Justify="Justify.Center" Class="mt-2">
+                                                <MudLink Href="@damage.ImageUrl" Target="_blank" Typo="Typo.body2">
+                                                    <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" /> Open in new tab
+                                                </MudLink>
+                                            </MudStack>
+                                        </MudPaper>
+                                    }
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    }
+                </MudStack>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info">No damage reports found for this vehicle.</MudAlert>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseHistoryDialog" Variant="Variant.Filled" Color="Color.Primary">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Maintenance Dialog -->
+<MudDialog @bind-Visible="showMaintenanceDialog" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="font-weight: 600;">
+            <MudIcon Icon="@Icons.Material.Filled.Build" Class="mr-2" />
+            Schedule Maintenance - @selectedVehicle?.Brand @selectedVehicle?.Model
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudSelect T="int" Label="Maintenance Type" @bind-Value="maintenanceModel.Type" Variant="Variant.Outlined" Required="true">
+                @foreach (var type in Enum.GetValues<MaintenanceType>())
+                {
+                    <MudSelectItem T="int" Value="@((int)type)">@type</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker Label="Scheduled Date" @bind-Date="scheduledDate" Variant="Variant.Outlined" Required="true" MinDate="DateTime.Today" />
+            <MudTextField T="string" Label="Description" @bind-Value="maintenanceModel.Description" 
+                          Variant="Variant.Outlined" Lines="3" Required="true" />
+            <MudNumericField T="decimal" Label="Estimated Cost" @bind-Value="maintenanceModel.Cost" 
+                             Variant="Variant.Outlined" Min="0m" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseMaintenanceDialog" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="SubmitMaintenance" 
+                   Disabled="@isProcessing">
+            @if (isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Schedule Maintenance
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Damage Dialog -->
+<MudDialog @bind-Visible="showDamageDialog" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="font-weight: 600;">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2" />
+            Report Damage - @selectedVehicle?.Brand @selectedVehicle?.Model
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudSelect T="int" Label="Severity" @bind-Value="damageModel.Severity" Variant="Variant.Outlined" Required="true">
+                @foreach (var severity in Enum.GetValues<DamageSeverity>())
+                {
+                    <MudSelectItem T="int" Value="@((int)severity)">@severity</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker Label="Reported Date" @bind-Date="reportedDate" Variant="Variant.Outlined" Required="true" />
             <MudTextField T="string" Label="Description" @bind-Value="damageModel.Description" 
-                          Lines="3" Required="true" />
+                          Variant="Variant.Outlined" Lines="3" Required="true" />
             <MudNumericField T="decimal?" Label="Estimated Repair Cost" @bind-Value="damageModel.RepairCost" 
-                             Min="0" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
-            <MudTextField T="string" Label="Reported By" @bind-Value="damageModel.ReportedBy" />
-            <MudTextField T="string" Label="Image URL" @bind-Value="damageModel.ImageUrl" />
+                             Variant="Variant.Outlined" Min="0m" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+            <MudTextField T="string" Label="Reported By" @bind-Value="damageModel.ReportedBy" Variant="Variant.Outlined" />
+            <MudTextField T="string" Label="Image URL" @bind-Value="damageModel.ImageUrl" Variant="Variant.Outlined" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseDamageDialog" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="SubmitDamage" 
+                   Disabled="@isProcessing">
+            @if (isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Report Damage
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .hover-lift:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+    }
+</style>
+
+@code {
+    private bool isAuthorized = false;
+    private bool isAdmin = false;
+    private bool isLoading = true;
+    private bool isProcessing = false;
+    private List<Vehicle> vehicles = new();
+    private List<Vehicle> filteredVehicles = new();
+    private List<CategoryModel> categories = new();
+    private List<VehicleDamage> allDamages = new();
+    private Vehicle? selectedVehicle;
+
+    // Filters
+    private int? selectedCategoryId;
+    private VehicleStatus? selectedStatus;
+    private string searchText = "";
+
+    // Dialogs
+    private bool showMaintenanceDialog = false;
+    private bool showDamageDialog = false;
+    private bool showHistoryDialog = false;
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    // Models
+    private CreateMaintenanceDto maintenanceModel = new();
+    private CreateVehicleDamageDto damageModel = new();
+    private DateTime? scheduledDate;
+    private DateTime? reportedDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        
+        var role = await AuthService.GetRoleAsync();
+        isAdmin = role == "Admin";
+        isAuthorized = isAdmin || role == "Employee";
+
+        if (!isAuthorized)
+        {
+            isLoading = false;
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        await LoadVehicles();
+        await LoadCategories();
+        await LoadDamages();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        ApplyFilters();
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task LoadVehicles()
+    {
+        isLoading = true;
+        try
+        {
+            vehicles = await ApiService.GetVehiclesAsync();
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading vehicles: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadCategories()
+    {
+        try
+        {
+            categories = await ApiService.GetCategoriesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading categories: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadDamages()
+    {
+        try
+        {
+            allDamages = await ApiService.GetVehicleDamagesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading damages: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        var filtered = vehicles.AsEnumerable();
+
+        if (selectedCategoryId.HasValue)
+        {
+            filtered = filtered.Where(v => v.CategoryId == selectedCategoryId.Value);
+        }
+
+        if (selectedStatus.HasValue)
+        {
+            filtered = filtered.Where(v => v.Status == selectedStatus.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            var search = searchText.ToLower();
+            filtered = filtered.Where(v =>
+                v.Brand.ToLower().Contains(search) ||
+                v.Model.ToLower().Contains(search) ||
+                v.RegistrationNumber.ToLower().Contains(search));
+        }
+
+        filteredVehicles = filtered.ToList();
+    }
+
+    private void ClearFilters()
+    {
+        selectedCategoryId = null;
+        selectedStatus = null;
+        searchText = "";
+        ApplyFilters();
+    }
+
+    private void OpenAddVehicleDialog()
+    {
+        NavigationManager.NavigateTo("/vehicles/add");
+    }
+
+    private void OpenEditVehicleDialog(Vehicle vehicle)
+    {
+        NavigationManager.NavigateTo($"/vehicles/edit/{vehicle.Id}");
+    }
+
+    private void OpenVehicleHistory(Vehicle vehicle)
+    {
+        selectedVehicle = vehicle;
+        showHistoryDialog = true;
+    }
+
+    private void CloseHistoryDialog()
+    {
+        showHistoryDialog = false;
+        selectedVehicle = null;
+    }
+
+    private void OpenMaintenanceDialog(Vehicle vehicle)
+    {
+        selectedVehicle = vehicle;
+        maintenanceModel = new CreateMaintenanceDto 
+        { 
+            VehicleId = vehicle.Id,
+            Type = (int)MaintenanceType.Routine,
+            Cost = 0
+        };
+        scheduledDate = DateTime.Today;
+        showMaintenanceDialog = true;
+    }
+
+    private void CloseMaintenanceDialog()
+    {
+        showMaintenanceDialog = false;
+        selectedVehicle = null;
+    }
+
+    private async Task SubmitMaintenance()
+    {
+        if (selectedVehicle == null || scheduledDate == null) return;
+
+        isProcessing = true;
+        try
+        {
+            maintenanceModel.ScheduledDate = scheduledDate.Value;
+            var result = await ApiServiceExtensions.CreateMaintenanceAsync(ApiService, HttpClient, maintenanceModel);
+            
+            if (result != null)
+            {
+                Snackbar.Add($"Maintenance scheduled for {selectedVehicle.Brand} {selectedVehicle.Model}", Severity.Success);
+                CloseMaintenanceDialog();
+                await LoadVehicles();
+            }
+            else
+            {
+                Snackbar.Add("Failed to schedule maintenance", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private void OpenDamageDialog(Vehicle vehicle)
+    {
+        selectedVehicle = vehicle;
+        damageModel = new CreateVehicleDamageDto 
+        { 
+            VehicleId = vehicle.Id,
+            Severity = (int)DamageSeverity.Minor,
+            RepairCost = 0
+        };
+        reportedDate = DateTime.Today;
+        showDamageDialog = true;
+    }
+
+    private void CloseDamageDialog()
+    {
+        showDamageDialog = false;
+        selectedVehicle = null;
+    }
+
+    private async Task SubmitDamage()
+    {
+        if (selectedVehicle == null || reportedDate == null) return;
+
+        isProcessing = true;
+        try
+        {
+            damageModel.ReportedDate = reportedDate.Value;
+            var result = await ApiServiceExtensions.CreateVehicleDamageAsync(ApiService, HttpClient, damageModel);
+            
+            if (result != null)
+            {
+                Snackbar.Add($"Damage reported for {selectedVehicle.Brand} {selectedVehicle.Model}", Severity.Success);
+                CloseDamageDialog();
+                await LoadVehicles();
+                await LoadDamages();
+            }
+            else
+            {
+                Snackbar.Add("Failed to report damage", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task DeleteVehicle(Vehicle vehicle)
+    {
+        // Simple confirmation using Snackbar with action
+        Snackbar.Add($"Delete {vehicle.Brand} {vehicle.Model}? This cannot be undone.", Severity.Warning);
+        
+        // For proper confirmation, you'd typically use a MudDialog
+        // For now, direct delete - add confirmation dialog if needed
+        try
+        {
+            await ApiService.DeleteVehicleAsync(vehicle.Id);
+            Snackbar.Add($"{vehicle.Brand} {vehicle.Model} deleted successfully", Severity.Success);
+            await LoadVehicles();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete vehicle: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private Color GetStatusColor(VehicleStatus status)
+    {
+        return status switch
+        {
+            VehicleStatus.Available => Color.Success,
+            VehicleStatus.Reserved => Color.Info,
+            VehicleStatus.Rented => Color.Warning,
+            VehicleStatus.Maintenance => Color.Warning,
+            VehicleStatus.Retired => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetCategoryColor(string categoryName)
+    {
+        return categoryName.ToLower() switch
+        {
+            "economy" => Color.Info,
+            "compact" => Color.Primary,
+            "midsize" => Color.Success,
+            "suv" => Color.Success,
+            "luxury" => Color.Warning,
+            "sports" => Color.Error,
+            "van" => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetSeverityColor(DamageSeverity severity)
+    {
+        return severity switch
+        {
+            DamageSeverity.Minor => Color.Info,
+            DamageSeverity.Moderate => Color.Warning,
+            DamageSeverity.Major => Color.Error,
+            DamageSeverity.Critical => Color.Dark,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetDamageStatusColor(DamageStatus status)
+    {
+        return status switch
+        {
+            DamageStatus.Reported => Color.Warning,
+            DamageStatus.UnderRepair => Color.Info,
+            DamageStatus.Repaired => Color.Success,
+            _ => Color.Default
+        };
+    }
+}

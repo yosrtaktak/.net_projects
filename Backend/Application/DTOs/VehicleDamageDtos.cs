@@ -8,7 +8,7 @@ public class CreateVehicleDamageDto
     public DateTime ReportedDate { get; set; }
     public string Description { get; set; } = string.Empty;
     public int Severity { get; set; } // DamageSeverity enum as int
-    public decimal RepairCost { get; set; }
+    public decimal? RepairCost { get; set; } // Make nullable so customers don't need to provide
     public string? ReportedBy { get; set; }
     public string? ImageUrl { get; set; }
 }

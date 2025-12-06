@@ -24,4 +24,7 @@ public class Category
     
     // Icon or image URL for the category
     public string? IconUrl { get; set; }
+    
+    // Navigation property
+    public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 }

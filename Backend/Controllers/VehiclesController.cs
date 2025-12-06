@@ -174,7 +174,8 @@ public class VehiclesController : ControllerBase
                 vehicle.Model,
                 vehicle.RegistrationNumber,
                 vehicle.Year,
-                vehicle.Category,
+                vehicle.CategoryId,
+                CategoryName = vehicle.Category?.Name,
                 vehicle.DailyRate,
                 vehicle.Status,
                 vehicle.ImageUrl,
@@ -353,10 +354,10 @@ public class VehiclesController : ControllerBase
     }
 
     [AllowAnonymous]
-    [HttpGet("category/{category}")]
-    public async Task<ActionResult<IEnumerable<Vehicle>>> GetVehiclesByCategory(VehicleCategory category)
+    [HttpGet("category/{categoryId}")]
+    public async Task<ActionResult<IEnumerable<Vehicle>>> GetVehiclesByCategory(int categoryId)
     {
-        var vehicles = await _vehicleRepository.GetVehiclesByCategoryAsync(category);
+        var vehicles = await _vehicleRepository.GetVehiclesByCategoryAsync(categoryId);
         return Ok(vehicles);
     }
 
@@ -393,7 +394,7 @@ public class VehiclesController : ControllerBase
         existingVehicle.Model = vehicle.Model;
         existingVehicle.RegistrationNumber = vehicle.RegistrationNumber;
         existingVehicle.Year = vehicle.Year;
-        existingVehicle.Category = vehicle.Category;
+        existingVehicle.CategoryId = vehicle.CategoryId;
         existingVehicle.DailyRate = vehicle.DailyRate;
         existingVehicle.Status = vehicle.Status;
         existingVehicle.ImageUrl = vehicle.ImageUrl;

@@ -82,10 +82,10 @@ public class ReportService : IReportService
 
         // Vehicles by category
         report.VehiclesByCategory = vehiclesList
-            .GroupBy(v => v.Category)
+            .GroupBy(v => v.Category.Name)
             .Select(g => new VehicleCategoryReportDto
             {
-                Category = g.Key.ToString(),
+                Category = g.Key,
                 Count = g.Count(),
                 Available = g.Count(v => v.Status == VehicleStatus.Available),
                 Rented = g.Count(v => v.Status == VehicleStatus.Rented)

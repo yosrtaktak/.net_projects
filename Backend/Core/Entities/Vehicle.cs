@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Backend.Core.Entities;
 
@@ -20,7 +21,12 @@ public class Vehicle
     
     public int Year { get; set; }
     
-    public VehicleCategory Category { get; set; }
+    // Foreign key to Category table
+    public int CategoryId { get; set; }
+    
+    // Navigation property
+    [ForeignKey(nameof(CategoryId))]
+    public Category Category { get; set; } = null!;
     
     public decimal DailyRate { get; set; }
     
@@ -38,16 +44,6 @@ public class Vehicle
     public ICollection<Rental> Rentals { get; set; } = new List<Rental>();
     public ICollection<Maintenance> MaintenanceRecords { get; set; } = new List<Maintenance>();
     public ICollection<VehicleDamage> DamageRecords { get; set; } = new List<VehicleDamage>();
-}
-
-public enum VehicleCategory
-{
-    Economy,
-    Compact,
-    Midsize,
-    SUV,
-    Luxury,
-    Van
 }
 
 public enum VehicleStatus

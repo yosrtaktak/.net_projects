@@ -11,9 +11,24 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
     {
     }
 
+    public override async Task<IEnumerable<Vehicle>> GetAllAsync()
+    {
+        return await _dbSet
+            .Include(v => v.Category)
+            .ToListAsync();
+    }
+
+    public override async Task<Vehicle?> GetByIdAsync(int id)
+    {
+        return await _dbSet
+            .Include(v => v.Category)
+            .FirstOrDefaultAsync(v => v.Id == id);
+    }
+
     public async Task<IEnumerable<Vehicle>> GetAvailableVehiclesAsync(DateTime startDate, DateTime endDate)
     {
         return await _dbSet
+            .Include(v => v.Category)
             .Where(v => v.Status == VehicleStatus.Available &&
                    !v.Rentals.Any(r =>
                        r.Status == RentalStatus.Active &&
@@ -22,16 +37,18 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Vehicle>> GetVehiclesByCategoryAsync(VehicleCategory category)
+    public async Task<IEnumerable<Vehicle>> GetVehiclesByCategoryAsync(int categoryId)
     {
         return await _dbSet
-            .Where(v => v.Category == category)
+            .Include(v => v.Category)
+            .Where(v => v.CategoryId == categoryId)
             .ToListAsync();
     }
 
     public async Task<IEnumerable<Vehicle>> GetVehiclesByStatusAsync(VehicleStatus status)
     {
         return await _dbSet
+            .Include(v => v.Category)
             .Where(v => v.Status == status)
             .ToListAsync();
     }
@@ -39,6 +56,7 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
     public async Task<Vehicle?> GetVehicleWithRentalsAsync(int vehicleId)
     {
         return await _dbSet
+            .Include(v => v.Category)
             .Include(v => v.Rentals)
             .ThenInclude(r => r.User)
             .FirstOrDefaultAsync(v => v.Id == vehicleId);
@@ -47,6 +65,7 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
     public async Task<Vehicle?> GetByIdWithHistoryAsync(int vehicleId)
     {
         return await _dbSet
+            .Include(v => v.Category)
             .Include(v => v.Rentals)
                 .ThenInclude(r => r.User)
             .Include(v => v.MaintenanceRecords)
