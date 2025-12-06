@@ -120,6 +120,10 @@ secrets.json
 *.bak
 *.backup
 
+# Process ID files
+*.pid
+*_pid.txt
+
 # Node modules (if you have any frontend)
 node_modules/
 npm-debug.log
