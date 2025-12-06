@@ -160,9 +160,8 @@ namespace Backend
                 {
                     var context = services.GetRequiredService<CarRentalDbContext>();
                     
-                    // Ensure database exists but don't apply migrations automatically
-                    // The migrations have been manually applied via SQL scripts
-                    await context.Database.EnsureCreatedAsync();
+                    // Apply pending migrations
+                    await context.Database.MigrateAsync();
                     
                     // Seed Identity data (roles and users)
                     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
