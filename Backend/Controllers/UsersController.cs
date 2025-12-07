@@ -103,38 +103,56 @@ public class UsersController : ControllerBase
     [HttpPut("me")]
     public async Task<ActionResult<UserProfileDto>> UpdateMyProfile([FromBody] UpdateProfileDto dto)
     {
-        // Try to get email from claims
-        var userEmail = User.FindFirst(ClaimTypes.Email)?.Value 
-            ?? User.FindFirst(ClaimTypes.Name)?.Value
-            ?? User.Identity?.Name;
+        try
+        {
+            // Try to get email from claims
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value 
+                ?? User.FindFirst(ClaimTypes.Name)?.Value
+                ?? User.Identity?.Name;
+                
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+
+            var user = await _userManager.FindByEmailAsync(userEmail);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            // Update fields with null checks
+            user.FirstName = dto.FirstName ?? user.FirstName;
+            user.LastName = dto.LastName ?? user.LastName;
+            user.PhoneNumber = dto.PhoneNumber ?? user.PhoneNumber;
+            user.DriverLicenseNumber = dto.DriverLicenseNumber ?? user.DriverLicenseNumber;
             
-        if (string.IsNullOrEmpty(userEmail))
-        {
-            return Unauthorized(new { message = "User not authenticated" });
+            // Only update DateOfBirth if provided
+            if (dto.DateOfBirth.HasValue)
+            {
+                user.DateOfBirth = dto.DateOfBirth;
+            }
+            
+            // Only update Address if not null
+            if (dto.Address != null)
+            {
+                user.Address = dto.Address;
+            }
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                return BadRequest(new { message = "Failed to update profile", errors = errors });
+            }
+
+            // Return updated profile
+            return await GetMyProfile();
         }
-
-        var user = await _userManager.FindByEmailAsync(userEmail);
-        if (user == null)
+        catch (Exception ex)
         {
-            return NotFound(new { message = "User not found" });
+            return StatusCode(500, new { message = "An error occurred while updating profile", error = ex.Message });
         }
-
-        // Update fields
-        user.FirstName = dto.FirstName;
-        user.LastName = dto.LastName;
-        user.PhoneNumber = dto.PhoneNumber;
-        user.DriverLicenseNumber = dto.DriverLicenseNumber;
-        user.DateOfBirth = dto.DateOfBirth;
-        user.Address = dto.Address;
-
-        var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-        {
-            return BadRequest(new { message = "Failed to update profile", errors = result.Errors });
-        }
-
-        // Return updated profile
-        return await GetMyProfile();
     }
 
     // GET: api/users/customers

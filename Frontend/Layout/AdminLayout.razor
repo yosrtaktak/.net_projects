@@ -47,6 +47,7 @@
                 <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People" Class="mb-1">Customers</MudNavLink>
                 <MudNavLink Href="/maintenances" Icon="@Icons.Material.Filled.Build" Class="mb-1">Maintenance</MudNavLink>
                 <MudNavLink Href="/damages" Icon="@Icons.Material.Filled.Warning" Class="mb-1">Damages</MudNavLink>
+                <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.Assessment" Class="mb-1">Reports</MudNavLink>
             }
         </MudNavMenu>
         
@@ -63,6 +64,14 @@
                     <MudText Typo="Typo.caption" Color="Color.Secondary">@userRole</MudText>
                 </MudStack>
             </MudStack>
+            <MudButton Variant="Variant.Outlined" 
+                       Color="Color.Primary" 
+                       FullWidth="true" 
+                       Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Person"
+                       Href="/admin/profile">
+                My Profile
+            </MudButton>
             <MudButton Variant="Variant.Outlined" 
                        Color="Color.Error" 
                        FullWidth="true" 

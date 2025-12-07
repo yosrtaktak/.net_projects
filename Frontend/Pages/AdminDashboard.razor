@@ -162,17 +162,20 @@
                                     View Rentals
                                 </MudButton>
                             </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudButton Variant="Variant.Outlined" 
-                                           Color="Color.Primary" 
-                                           FullWidth="true"
-                                           Size="Size.Large"
-                                           StartIcon="@Icons.Material.Filled.Category"
-                                           Href="/admin/categories"
-                                           Style="height: 60px; font-weight: 600;">
-                                    Manage Categories
-                                </MudButton>
-                            </MudItem>
+                            @if (userRole == "Admin")
+                            {
+                                <MudItem xs="12" sm="6" md="3">
+                                    <MudButton Variant="Variant.Outlined" 
+                                               Color="Color.Primary" 
+                                               FullWidth="true"
+                                               Size="Size.Large"
+                                               StartIcon="@Icons.Material.Filled.Category"
+                                               Href="/admin/categories"
+                                               Style="height: 60px; font-weight: 600;">
+                                        Manage Categories
+                                    </MudButton>
+                                </MudItem>
+                            }
                         </MudGrid>
                     </MudStack>
                 </MudPaper>
@@ -266,6 +269,7 @@
     private bool isAuthorized = false;
     private bool isLoading = true;
     private string? username;
+    private string? userRole;
     private List<Vehicle> vehicles = new();
     private List<Customer> customers = new();
     private List<Rental> rentals = new();
@@ -276,6 +280,7 @@
         
         var role = await AuthService.GetRoleAsync();
         username = await AuthService.GetUsernameAsync();
+        userRole = role;
         isAuthorized = role == "Admin" || role == "Employee";
 
         if (!isAuthorized)

@@ -21,10 +21,13 @@ public interface IApiService
     Task<Customer?> GetUserByIdAsync(string id);
     Task<Customer?> GetCurrentCustomerAsync(); // Uses /api/users/me
     Task<Customer?> GetMyProfileAsync();
+    Task<UserProfileDto?> GetMyUserProfileAsync(); // For Admin/Employee profile
     Task<List<Rental>> GetMyRentalsAsync();
     Task<List<VehicleDamage>> GetMyDamagesAsync();
     Task<bool> UpdateCustomerAsync(string id, UpdateCustomerModel model);
     Task<bool> UpdateProfileAsync(UpdateProfileModel model);
+    Task<bool> UpdateMyUserProfileAsync(UpdateProfileDto model); // For Admin/Employee profile update
+    Task<bool> UpdateMyProfileAsync(UpdateProfileDto model); // For Customer profile update
     
     // Employee Management
     Task<List<EmployeeModel>> GetEmployeesAsync();
@@ -260,6 +263,19 @@ public class ApiService : IApiService
         }
     }
 
+    public async Task<UserProfileDto?> GetMyUserProfileAsync()
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<UserProfileDto>("api/users/me");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching my user profile: {ex.Message}");
+            return null;
+        }
+    }
+
     public async Task<bool> UpdateCustomerAsync(string id, UpdateCustomerModel model)
     {
         try
@@ -284,6 +300,34 @@ public class ApiService : IApiService
         catch (Exception ex)
         {
             Console.WriteLine($"Error updating profile: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateMyUserProfileAsync(UpdateProfileDto model)
+    {
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync("api/users/me", model);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating user profile: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateMyProfileAsync(UpdateProfileDto model)
+    {
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync("api/users/me", model);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating my profile: {ex.Message}");
             return false;
         }
     }

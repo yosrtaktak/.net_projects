@@ -30,10 +30,11 @@ public class UpdateProfileDto
     public string LastName { get; set; } = "";
     
     [Required]
-    [Phone]
+    [StringLength(20, MinimumLength = 8)]
     public string PhoneNumber { get; set; } = "";
     
-    [StringLength(20)]
+    [Required]
+    [StringLength(20, MinimumLength = 5)]
     public string DriverLicenseNumber { get; set; } = "";
     
     public DateTime? DateOfBirth { get; set; }

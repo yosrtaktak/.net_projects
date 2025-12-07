@@ -140,10 +140,34 @@
 
 @code {
     private bool isAuthenticated = false;
+    private string? username;
 
     protected override async Task OnInitializedAsync()
     {
-        isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        await LoadUserState();
+    }
+
+    private async Task LoadUserState()
+    {
+        try
+        {
+            isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (isAuthenticated)
+            {
+                username = await AuthService.GetUsernameAsync();
+                var role = await AuthService.GetRoleAsync();
+                
+                // Redirect admin/employee to admin dashboard
+                if (role == "Admin" || role == "Employee")
+                {
+                    NavigationManager.NavigateTo("/admin", true);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            isAuthenticated = false;
+        }
     }
 
     private void NavigateToVehicles() => NavigationManager.NavigateTo("/vehicles/browse");
