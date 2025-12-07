@@ -41,7 +41,7 @@ public interface IApiService
     Task<List<Rental>> GetCustomerRentalsAsync(int customerId);
     Task<Rental?> CreateRentalAsync(CreateRentalRequest request);
     Task<PriceCalculationResponse?> CalculatePriceAsync(CalculatePriceRequest request);
-    Task<bool> CompleteRentalAsync(int id);
+    Task<bool> CompleteRentalAsync(int id, int endMileage);
     Task<bool> CancelRentalAsync(int id);
     Task<List<Rental>> GetRentalsForManagementAsync(string? status = null, DateTime? startDate = null, DateTime? endDate = null, int? vehicleId = null, string? userId = null);
     Task<bool> UpdateRentalStatusAsync(int id, string status);
@@ -172,12 +172,34 @@ public class ApiService : IApiService
         try
         {
             var response = await _httpClient.DeleteAsync($"api/vehicles/{id}");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error deleting vehicle. Status: {response.StatusCode}, Content: {errorContent}");
+                
+                // Try to parse error message for better error handling
+                try
+                {
+                    var errorObj = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(errorContent);
+                    if (errorObj != null && errorObj.ContainsKey("message"))
+                    {
+                        throw new InvalidOperationException(errorObj["message"].ToString());
+                    }
+                }
+                catch (System.Text.Json.JsonException)
+                {
+                    // If parsing fails, throw generic error
+                    throw new InvalidOperationException("Failed to delete vehicle. It may have active rentals or maintenance records.");
+                }
+            }
+            
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error deleting vehicle: {ex.Message}");
-            return false;
+            throw; // Re-throw to allow caller to handle it
         }
     }
 
@@ -414,17 +436,45 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<bool> CompleteRentalAsync(int id)
+    public async Task<bool> CompleteRentalAsync(int id, int endMileage)
     {
         try
         {
-            var response = await _httpClient.PutAsync($"api/rentals/{id}/complete", null);
+            var dto = new CompleteRentalDto { EndMileage = endMileage };
+            var response = await _httpClient.PutAsJsonAsync($"api/rentals/{id}/complete", dto);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error completing rental. Status: {response.StatusCode}, Content: {errorContent}");
+                
+                // Try to parse and throw meaningful error
+                try
+                {
+                    var errorObj = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(errorContent);
+                    if (errorObj != null && errorObj.ContainsKey("message"))
+                    {
+                        throw new InvalidOperationException(errorObj["message"].ToString());
+                    }
+                }
+                catch (System.Text.Json.JsonException)
+                {
+                    // If parsing fails, throw generic error
+                }
+                
+                return false;
+            }
+            
             return response.IsSuccessStatusCode;
+        }
+        catch (InvalidOperationException)
+        {
+            throw; // Re-throw to preserve the error message
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error completing rental: {ex.Message}");
-            return false;
+            throw;
         }
     }
 

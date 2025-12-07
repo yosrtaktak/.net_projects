@@ -6,93 +6,150 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<PageTitle>Login - Car Rental</PageTitle>
+<PageTitle>Sign In - Car Rental</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Small" Style="height: 100vh; display: flex; align-items: center; justify-content: center;">
-    <MudPaper Elevation="8" Class="pa-8" Style="border-radius: 16px; max-width: 450px; width: 100%;">
-        <MudStack Spacing="4">
-            <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="2">
-                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Large" Color="Color.Primary" Style="font-size: 4rem;" />
-                <MudText Typo="Typo.h4" Align="Align.Center"><strong>Car Rental System</strong></MudText>
-                <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">
-                    Sign in to your account
+<div style="min-height: 100vh; display: flex; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
+    <!-- Left Panel - Branding -->
+    <MudHidden Breakpoint="Breakpoint.SmAndDown">
+        <div style="width: 45%; background: linear-gradient(135deg, #0d9488 0%, #0f766e 50%, #115e59 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 3rem; position: relative; overflow: hidden;">
+            <!-- Decorative Pattern -->
+            <div style="position: absolute; inset: 0; opacity: 0.1; background-image: url('data:image/svg+xml,%3Csvg width=&quot;60&quot; height=&quot;60&quot; viewBox=&quot;0 0 60 60&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cg fill=&quot;none&quot; fill-rule=&quot;evenodd&quot;%3E%3Cg fill=&quot;%23ffffff&quot; fill-opacity=&quot;1&quot;%3E%3Cpath d=&quot;M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z&quot;/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+            
+            <MudStack Spacing="4" AlignItems="AlignItems.Center" Style="position: relative; z-index: 1; text-align: center; color: white; max-width: 400px;">
+                <div style="width: 100px; height: 100px; background: white; border-radius: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
+                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Style="font-size: 3.5rem; color: #0d9488;" />
+                </div>
+                <MudText Typo="Typo.h3" Style="font-weight: 800; letter-spacing: -0.02em;">Car Rental System</MudText>
+                <MudText Typo="Typo.body1" Style="opacity: 0.9; line-height: 1.7;">
+                    Your trusted partner for premium vehicle rentals. Experience seamless booking and quality service.
                 </MudText>
+                
+                <MudStack Spacing="3" Class="mt-4" Style="width: 100%;">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Style="color: #5eead4;" />
+                        <MudText Typo="Typo.body2">Wide selection of quality vehicles</MudText>
+                    </MudStack>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Style="color: #5eead4;" />
+                        <MudText Typo="Typo.body2">Competitive pricing & flexible plans</MudText>
+                    </MudStack>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Style="color: #5eead4;" />
+                        <MudText Typo="Typo.body2">24/7 customer support</MudText>
+                    </MudStack>
+                </MudStack>
             </MudStack>
+        </div>
+    </MudHidden>
+    
+    <!-- Right Panel - Login Form -->
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+        <MudPaper Elevation="0" Class="pa-8" Style="border-radius: 20px; max-width: 440px; width: 100%; background: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);">
+            <MudStack Spacing="5">
+                <!-- Mobile Logo -->
+                <MudHidden Breakpoint="Breakpoint.MdAndUp">
+                    <MudStack Row="false" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+                            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Style="font-size: 2rem; color: white;" />
+                        </div>
+                    </MudStack>
+                </MudHidden>
+                
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4" Style="font-weight: 700; color: #1e293b;">Welcome back</MudText>
+                    <MudText Typo="Typo.body1" Style="color: #64748b;">
+                        Sign in to your account to continue
+                    </MudText>
+                </MudStack>
 
-            <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin">
-                <DataAnnotationsValidator />
-                <MudStack Spacing="3">
-                    <MudTextField Label="Username" 
-                                  @bind-Value="loginRequest.Username" 
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Person"
-                                  Required="true"
-                                  For="@(() => loginRequest.Username)" />
+                <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
+                    <MudStack Spacing="4">
+                        <MudTextField Label="Username" 
+                                      @bind-Value="loginRequest.Username" 
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Person"
+                                      Required="true"
+                                      For="@(() => loginRequest.Username)" />
 
-                    <MudTextField Label="Password" 
-                                  @bind-Value="loginRequest.Password" 
-                                  Variant="Variant.Outlined"
-                                  InputType="InputType.Password"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Lock"
-                                  Required="true"
-                                  For="@(() => loginRequest.Password)" />
+                        <MudTextField Label="Password" 
+                                      @bind-Value="loginRequest.Password" 
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Lock"
+                                      Required="true"
+                                      For="@(() => loginRequest.Password)" />
 
-                    <MudButton ButtonType="ButtonType.Submit" 
-                               Variant="Variant.Filled" 
-                               Color="Color.Primary" 
+                        <MudButton ButtonType="ButtonType.Submit" 
+                                   Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   FullWidth="true" 
+                                   Size="Size.Large"
+                                   Disabled="@isLoading"
+                                   Style="font-weight: 600; height: 52px; border-radius: 12px;">
+                            @if (isLoading)
+                            {
+                                <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                                <span>Signing in...</span>
+                            }
+                            else
+                            {
+                                <span>Sign In</span>
+                            }
+                        </MudButton>
+                    </MudStack>
+                </EditForm>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudDivider Style="flex: 1;" />
+                    <MudText Typo="Typo.caption" Style="color: #94a3b8;">Demo Accounts</MudText>
+                    <MudDivider Style="flex: 1;" />
+                </MudStack>
+
+                <MudStack Spacing="2">
+                    <MudButton Variant="Variant.Outlined" 
                                FullWidth="true" 
-                               Size="Size.Large"
-                               Disabled="@isLoading">
-                        @if (isLoading)
-                        {
-                            <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
-                            <span>Logging in...</span>
-                        }
-                        else
-                        {
-                            <span>Sign In</span>
-                        }
+                               StartIcon="@Icons.Material.Filled.AdminPanelSettings"
+                               OnClick='() => QuickLogin("admin", "Admin@123")'
+                               Style="border-color: #e2e8f0; color: #475569; justify-content: flex-start; height: 48px; border-radius: 10px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="width: 100%;">
+                            <MudText Style="flex: 1; text-align: left;">Admin Portal</MudText>
+                            <MudChip T="string" Size="Size.Small" Style="background: #fef3c7; color: #92400e; font-size: 0.7rem;">Admin</MudChip>
+                        </MudStack>
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" 
+                               FullWidth="true" 
+                               StartIcon="@Icons.Material.Filled.Work"
+                               OnClick='() => QuickLogin("employee", "Employee@123")'
+                               Style="border-color: #e2e8f0; color: #475569; justify-content: flex-start; height: 48px; border-radius: 10px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="width: 100%;">
+                            <MudText Style="flex: 1; text-align: left;">Employee Portal</MudText>
+                            <MudChip T="string" Size="Size.Small" Style="background: #dbeafe; color: #1e40af; font-size: 0.7rem;">Employee</MudChip>
+                        </MudStack>
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" 
+                               FullWidth="true" 
+                               StartIcon="@Icons.Material.Filled.Person"
+                               OnClick='() => QuickLogin("customer", "Customer@123")'
+                               Style="border-color: #e2e8f0; color: #475569; justify-content: flex-start; height: 48px; border-radius: 10px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="width: 100%;">
+                            <MudText Style="flex: 1; text-align: left;">Customer Portal</MudText>
+                            <MudChip T="string" Size="Size.Small" Style="background: #dcfce7; color: #166534; font-size: 0.7rem;">Customer</MudChip>
+                        </MudStack>
                     </MudButton>
                 </MudStack>
-            </EditForm>
 
-            <MudDivider />
+                <MudDivider />
 
-            <MudStack Spacing="2">
-                <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary"><strong>Quick Login</strong></MudText>
-                <MudButton Variant="Variant.Outlined" 
-                           Color="Color.Primary" 
-                           FullWidth="true" 
-                           StartIcon="@Icons.Material.Filled.AdminPanelSettings"
-                           OnClick='() => QuickLogin("admin", "Admin@123")'>
-                    Admin Portal
-                </MudButton>
-                <MudButton Variant="Variant.Outlined" 
-                           Color="Color.Info" 
-                           FullWidth="true" 
-                           StartIcon="@Icons.Material.Filled.Work"
-                           OnClick='() => QuickLogin("employee", "Employee@123")'>
-                    Employee Portal
-                </MudButton>
-                <MudButton Variant="Variant.Outlined" 
-                           Color="Color.Success" 
-                           FullWidth="true" 
-                           StartIcon="@Icons.Material.Filled.Person"
-                           OnClick='() => QuickLogin("customer", "Customer@123")'>
-                    Customer Portal
-                </MudButton>
+                <MudText Typo="Typo.body2" Align="Align.Center" Style="color: #64748b;">
+                    Don't have an account? <MudLink Href="/register" Style="color: #0d9488; font-weight: 600;">Create one</MudLink>
+                </MudText>
             </MudStack>
-
-            <MudDivider />
-
-            <MudText Typo="Typo.body2" Align="Align.Center">
-                Don't have an account? <MudLink Href="/register" Color="Color.Primary"><strong>Register here</strong></MudLink>
-            </MudText>
-        </MudStack>
-    </MudPaper>
-</MudContainer>
+        </MudPaper>
+    </div>
+</div>
 
 @code {
     private LoginRequest loginRequest = new();

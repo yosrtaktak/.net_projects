@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Backend.Core.Entities;
 
@@ -26,5 +27,6 @@ public class Category
     public string? IconUrl { get; set; }
     
     // Navigation property
+    [JsonIgnore]
     public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 }

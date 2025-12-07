@@ -128,9 +128,9 @@ public class RentalService : IRentalService
             throw new ArgumentException("Rental not found.");
         }
 
-        if (rental.Status != RentalStatus.Active)
+        if (rental.Status != RentalStatus.Active && rental.Status != RentalStatus.Reserved)
         {
-            throw new InvalidOperationException("Only active rentals can be completed.");
+            throw new InvalidOperationException("Only active or reserved rentals can be completed.");
         }
 
         rental.Status = RentalStatus.Completed;

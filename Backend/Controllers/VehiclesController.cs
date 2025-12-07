@@ -412,16 +412,52 @@ public class VehiclesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteVehicle(int id)
     {
-        var vehicle = await _vehicleRepository.GetByIdAsync(id);
+        var vehicle = await _vehicleRepository.GetByIdWithHistoryAsync(id);
         
         if (vehicle == null)
         {
             return NotFound(new { message = "Vehicle not found" });
         }
 
-        _vehicleRepository.Remove(vehicle);
-        await _unitOfWork.CommitAsync();
+        // Check if vehicle has any active rentals
+        var hasActiveRentals = vehicle.Rentals?.Any(r => 
+            r.Status == RentalStatus.Reserved || 
+            r.Status == RentalStatus.Active) ?? false;
 
-        return NoContent();
+        if (hasActiveRentals)
+        {
+            return BadRequest(new { 
+                message = "Cannot delete vehicle. It has active or reserved rentals.",
+                details = "Please complete or cancel all active rentals before deleting this vehicle."
+            });
+        }
+
+        // Check if vehicle has pending maintenance
+        var hasPendingMaintenance = vehicle.MaintenanceRecords?.Any(m => 
+            m.Status == MaintenanceStatus.Scheduled || 
+            m.Status == MaintenanceStatus.InProgress) ?? false;
+
+        if (hasPendingMaintenance)
+        {
+            return BadRequest(new { 
+                message = "Cannot delete vehicle. It has pending maintenance.",
+                details = "Please complete or cancel all maintenance records before deleting this vehicle."
+            });
+        }
+
+        try
+        {
+            _vehicleRepository.Remove(vehicle);
+            await _unitOfWork.CommitAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { 
+                message = "Failed to delete vehicle",
+                details = ex.Message
+            });
+        }
     }
 }

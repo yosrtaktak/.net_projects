@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Backend.Core.Entities;
 
 public class Rental
@@ -6,9 +8,13 @@ public class Rental
     
     // Changed from CustomerId (int) to UserId (string)
     public string UserId { get; set; } = null!;
+    
+    [JsonIgnore]
     public ApplicationUser User { get; set; } = null!;
     
     public int VehicleId { get; set; }
+    
+    [JsonIgnore]
     public Vehicle Vehicle { get; set; } = null!;
     
     public DateTime StartDate { get; set; }
@@ -30,6 +36,7 @@ public class Rental
     public DateTime CreatedAt { get; set; }
     
     // Navigation properties
+    [JsonIgnore]
     public Payment? Payment { get; set; }
 }
 

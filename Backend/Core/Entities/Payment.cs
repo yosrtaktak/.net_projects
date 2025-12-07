@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Backend.Core.Entities;
 
 public class Payment
@@ -5,6 +7,8 @@ public class Payment
     public int Id { get; set; }
     
     public int RentalId { get; set; }
+    
+    [JsonIgnore]
     public Rental Rental { get; set; } = null!;
     
     public decimal Amount { get; set; }

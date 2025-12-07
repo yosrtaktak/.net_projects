@@ -3,65 +3,105 @@
 @inject NavigationManager Navigation
 
 <MudLayout>
-    <MudDrawer @bind-Open="@_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always" Variant="@DrawerVariant.Mini" OpenMiniOnHover="false">
-        <MudDrawerHeader Class="px-4 py-4" Style="min-height: 80px; border-bottom: 1px solid var(--mud-palette-divider);">
+    <MudDrawer @bind-Open="@_drawerOpen" Elevation="0" Variant="@DrawerVariant.Responsive" Breakpoint="Breakpoint.Lg"
+               Style="border-right: 1px solid #e2e8f0;">
+        <MudDrawerHeader Class="px-4 py-4" Style="min-height: 72px; border-bottom: 1px solid #e2e8f0;">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" Size="Size.Large" />
+                <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Style="color: white; font-size: 1.5rem;" />
+                </div>
                 <MudStack Spacing="0">
-                    <MudText Typo="Typo.h6" Style="font-weight: 600;">Car Rental</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@userRole Portal</MudText>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 700; color: #1e293b;">Car Rental</MudText>
+                    <MudChip T="string" Size="Size.Small" Style="background: #f0fdfa; color: #0d9488; font-weight: 600; font-size: 0.7rem;">
+                        @userRole
+                    </MudChip>
                 </MudStack>
             </MudStack>
         </MudDrawerHeader>
         
-        <MudNavMenu Class="px-2 py-2">
-            <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard" Class="mb-1">
+        <MudNavMenu Class="px-2 py-3">
+            <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard" Class="mb-1" 
+                        Style="border-radius: 10px; margin: 2px 0;">
                 Dashboard
             </MudNavLink>
             
             @if (isAdmin)
             {
                 <!-- Admin-only navigation -->
-                <MudNavGroup Title="Fleet Management" Icon="@Icons.Material.Filled.DirectionsCar" Expanded="true" Class="mb-1">
-                    <MudNavLink Href="/vehicles/manage" Icon="@Icons.Material.Filled.Settings">Manage Vehicles</MudNavLink>
-                    <MudNavLink Href="/maintenances" Icon="@Icons.Material.Filled.Build">Maintenance</MudNavLink>
-                    <MudNavLink Href="/damages" Icon="@Icons.Material.Filled.Warning">Damages</MudNavLink>
-                </MudNavGroup>
+                <MudText Typo="Typo.caption" Class="px-3 pt-4 pb-2" Style="color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Fleet Management
+                </MudText>
+                <MudNavLink Href="/vehicles/manage" Icon="@Icons.Material.Filled.DirectionsCar" Style="border-radius: 10px; margin: 2px 0;">
+                    Manage Vehicles
+                </MudNavLink>
+                <MudNavLink Href="/maintenances" Icon="@Icons.Material.Filled.Build" Style="border-radius: 10px; margin: 2px 0;">
+                    Maintenance
+                </MudNavLink>
+                <MudNavLink Href="/damages" Icon="@Icons.Material.Filled.Warning" Style="border-radius: 10px; margin: 2px 0;">
+                    Damages
+                </MudNavLink>
                 
-                <MudNavGroup Title="Business Management" Icon="@Icons.Material.Filled.Business" Expanded="true" Class="mb-1">
-                    <MudNavLink Href="/rentals/manage" Icon="@Icons.Material.Filled.EventNote">All Rentals</MudNavLink>
-                    <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People">Customers</MudNavLink>
-                    <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.Assessment">Reports</MudNavLink>
-                </MudNavGroup>
+                <MudText Typo="Typo.caption" Class="px-3 pt-4 pb-2" Style="color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Business
+                </MudText>
+                <MudNavLink Href="/rentals/manage" Icon="@Icons.Material.Filled.EventNote" Style="border-radius: 10px; margin: 2px 0;">
+                    All Rentals
+                </MudNavLink>
+                <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People" Style="border-radius: 10px; margin: 2px 0;">
+                    Customers
+                </MudNavLink>
+                <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.Assessment" Style="border-radius: 10px; margin: 2px 0;">
+                    Reports
+                </MudNavLink>
                 
-                <MudNavGroup Title="System Management" Icon="@Icons.Material.Filled.Settings" Expanded="false" Class="mb-1">
-                    <MudNavLink Href="/admin/categories" Icon="@Icons.Material.Filled.Category">Categories</MudNavLink>
-                    <MudNavLink Href="/admin/employees" Icon="@Icons.Material.Filled.SupervisedUserCircle">Employees</MudNavLink>
-                </MudNavGroup>
+                <MudText Typo="Typo.caption" Class="px-3 pt-4 pb-2" Style="color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                    System
+                </MudText>
+                <MudNavLink Href="/admin/categories" Icon="@Icons.Material.Filled.Category" Style="border-radius: 10px; margin: 2px 0;">
+                    Categories
+                </MudNavLink>
+                <MudNavLink Href="/admin/employees" Icon="@Icons.Material.Filled.SupervisedUserCircle" Style="border-radius: 10px; margin: 2px 0;">
+                    Employees
+                </MudNavLink>
             }
             else
             {
                 <!-- Employee navigation -->
-                <MudNavLink Href="/vehicles/manage" Icon="@Icons.Material.Filled.DirectionsCar" Class="mb-1">Manage Vehicles</MudNavLink>
-                <MudNavLink Href="/rentals/manage" Icon="@Icons.Material.Filled.EventNote" Class="mb-1">Manage Rentals</MudNavLink>
-                <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People" Class="mb-1">Customers</MudNavLink>
-                <MudNavLink Href="/maintenances" Icon="@Icons.Material.Filled.Build" Class="mb-1">Maintenance</MudNavLink>
-                <MudNavLink Href="/damages" Icon="@Icons.Material.Filled.Warning" Class="mb-1">Damages</MudNavLink>
-                <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.Assessment" Class="mb-1">Reports</MudNavLink>
+                <MudText Typo="Typo.caption" Class="px-3 pt-4 pb-2" Style="color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Operations
+                </MudText>
+                <MudNavLink Href="/vehicles/manage" Icon="@Icons.Material.Filled.DirectionsCar" Style="border-radius: 10px; margin: 2px 0;">
+                    Manage Vehicles
+                </MudNavLink>
+                <MudNavLink Href="/rentals/manage" Icon="@Icons.Material.Filled.EventNote" Style="border-radius: 10px; margin: 2px 0;">
+                    Manage Rentals
+                </MudNavLink>
+                <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People" Style="border-radius: 10px; margin: 2px 0;">
+                    Customers
+                </MudNavLink>
+                <MudNavLink Href="/maintenances" Icon="@Icons.Material.Filled.Build" Style="border-radius: 10px; margin: 2px 0;">
+                    Maintenance
+                </MudNavLink>
+                <MudNavLink Href="/damages" Icon="@Icons.Material.Filled.Warning" Style="border-radius: 10px; margin: 2px 0;">
+                    Damages
+                </MudNavLink>
+                <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.Assessment" Style="border-radius: 10px; margin: 2px 0;">
+                    Reports
+                </MudNavLink>
             }
         </MudNavMenu>
         
         <MudSpacer />
         
         <MudDivider Class="my-2" />
-        <MudStack Class="px-4 py-3" Spacing="3">
+        <MudStack Class="px-4 py-4" Spacing="3">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                <MudAvatar Color="Color.Primary" Size="Size.Small" Style="font-weight: 600;">
+                <MudAvatar Style="background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); color: white; font-weight: 600;" Size="Size.Medium">
                     @GetInitials()
                 </MudAvatar>
                 <MudStack Spacing="0" Style="flex: 1; min-width: 0;">
-                    <MudText Typo="Typo.body2" Style="font-weight: 600; overflow: hidden; text-overflow: ellipsis;">@username</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@userRole</MudText>
+                    <MudText Typo="Typo.body2" Style="font-weight: 600; color: #1e293b; overflow: hidden; text-overflow: ellipsis;">@username</MudText>
+                    <MudText Typo="Typo.caption" Style="color: #64748b;">@userRole</MudText>
                 </MudStack>
             </MudStack>
             <MudButton Variant="Variant.Outlined" 
@@ -69,39 +109,52 @@
                        FullWidth="true" 
                        Size="Size.Small"
                        StartIcon="@Icons.Material.Filled.Person"
-                       Href="/admin/profile">
+                       Href="/admin/profile"
+                       Style="border-radius: 8px;">
                 My Profile
             </MudButton>
-            <MudButton Variant="Variant.Outlined" 
+            <MudButton Variant="Variant.Text" 
                        Color="Color.Error" 
                        FullWidth="true" 
                        Size="Size.Small"
                        StartIcon="@Icons.Material.Filled.Logout"
-                       OnClick="HandleLogout">
-                Logout
+                       OnClick="HandleLogout"
+                       Style="border-radius: 8px;">
+                Sign Out
             </MudButton>
         </MudStack>
     </MudDrawer>
 
-    <MudMainContent Style="background-color: #f5f5f5;">
+    <!-- Mobile AppBar - only visible on smaller screens -->
+    <MudHidden Breakpoint="Breakpoint.LgAndUp">
+        <MudAppBar Elevation="1" Style="background: white; border-bottom: 1px solid #e2e8f0;">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Style="color: #475569;" OnClick="@ToggleDrawer" />
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Style="color: white; font-size: 1.25rem;" />
+                </div>
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 700; color: #1e293b;">Car Rental</MudText>
+            </MudStack>
+            <MudSpacer />
+            <MudChip T="string" Size="Size.Small" Style="background: #f0fdfa; color: #0d9488; font-weight: 600;">
+                @userRole
+            </MudChip>
+        </MudAppBar>
+    </MudHidden>
+
+    <MudMainContent Style="background-color: #f8fafc;">
         <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="py-6 px-4" Style="min-height: calc(100vh - 80px);">
             @Body
         </MudContainer>
         
         <!-- Admin Footer -->
-        <MudPaper Elevation="0" Square="true" Class="mt-auto" Style="background-color: white; border-top: 1px solid var(--mud-palette-divider);">
+        <MudPaper Elevation="0" Square="true" Class="mt-auto" Style="background: white; border-top: 1px solid #e2e8f0;">
             <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="py-3">
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    <MudText Typo="Typo.body2" Style="color: #64748b;">
                         &copy; @DateTime.Now.Year Car Rental System - @userRole Portal
                     </MudText>
                     <MudStack Row="true" Spacing="4">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            Version 1.0
-                        </MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            Built with .NET 9
-                        </MudText>
                     </MudStack>
                 </MudStack>
             </MudContainer>
@@ -145,6 +198,11 @@
         {
             Navigation.NavigateTo("/login", true);
         }
+    }
+
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
     }
 
     private string GetInitials()

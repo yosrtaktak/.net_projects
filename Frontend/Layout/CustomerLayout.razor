@@ -3,62 +3,88 @@
 @inject NavigationManager Navigation
 
 <MudLayout>
-    <MudAppBar Elevation="2" Dense="false">
-        <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Class="mr-2" />
-        <MudText Typo="Typo.h6">Car Rental System</MudText>
+    <MudAppBar Elevation="2" Dense="false" Style="background: white; border-bottom: 1px solid #e2e8f0;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Style="color: white; font-size: 1.5rem;" />
+            </div>
+            <MudText Typo="Typo.h6" Style="font-weight: 700; color: #1e293b;">Car Rental</MudText>
+        </MudStack>
         <MudSpacer />
         
         <MudHidden Breakpoint="Breakpoint.SmAndDown">
-            <MudButton Href="/" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Home">
-                Home
-            </MudButton>
-            <MudButton Href="/vehicles/browse" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.DirectionsCar">
-                Browse Vehicles
-            </MudButton>
-            @if (isAuthenticated)
-            {
-                <MudButton Href="/my-rentals" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.EventNote">
-                    My Rentals
+            <MudStack Row="true" Spacing="1">
+                <MudButton Href="/" Variant="Variant.Text" Style="color: #475569; font-weight: 500;">
+                    Home
                 </MudButton>
-            }
+                <MudButton Href="/vehicles/browse" Variant="Variant.Text" Style="color: #475569; font-weight: 500;">
+                    Browse Vehicles
+                </MudButton>
+                @if (isAuthenticated)
+                {
+                    <MudButton Href="/my-rentals" Variant="Variant.Text" Style="color: #475569; font-weight: 500;">
+                        My Rentals
+                    </MudButton>
+                }
+            </MudStack>
         </MudHidden>
+        
+        <MudSpacer />
         
         @if (isAuthenticated)
         {
-            <MudMenu Icon="@Icons.Material.Filled.Person" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-                <MudStack Class="pa-4" Spacing="1" Style="min-width: 200px;">
-                    <MudText Typo="Typo.body2"><strong>@username</strong></MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Customer</MudText>
-                </MudStack>
-                <MudDivider />
-                <MudMenuItem Icon="@Icons.Material.Filled.Person" Href="/profile">My Profile</MudMenuItem>
-                <MudMenuItem Icon="@Icons.Material.Filled.EventNote" Href="/my-rentals">My Rentals</MudMenuItem>
-                <MudMenuItem Icon="@Icons.Material.Filled.History" Href="/rental-history">Rental History</MudMenuItem>
-                <MudDivider />
-                <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="HandleLogout" IconColor="Color.Error">
-                    Logout
-                </MudMenuItem>
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <ActivatorContent>
+                    <MudChip T="string" 
+                             Color="Color.Primary" 
+                             Variant="Variant.Filled"
+                             Style="cursor: pointer; font-weight: 600;">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-1" Size="Size.Small" />
+                        @username
+                    </MudChip>
+                </ActivatorContent>
+                <ChildContent>
+                    <MudStack Class="pa-4" Spacing="1" Style="min-width: 220px;">
+                        <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">@username</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Customer Account</MudText>
+                    </MudStack>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Person" Href="/profile">My Profile</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.EventNote" Href="/my-rentals">My Rentals</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.History" Href="/rental-history">Rental History</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="HandleLogout" IconColor="Color.Error">
+                        Sign Out
+                    </MudMenuItem>
+                </ChildContent>
             </MudMenu>
         }
         else
         {
-            <MudButton Href="/login" Variant="Variant.Outlined" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Login">
-                Login
-            </MudButton>
-            <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" Class="ml-2">
-                Register
-            </MudButton>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Href="/login" Variant="Variant.Text" Style="color: #475569; font-weight: 500;">
+                    Sign In
+                </MudButton>
+                <MudButton Href="/register" Variant="Variant.Filled" Color="Color.Primary" Style="font-weight: 600;">
+                    Get Started
+                </MudButton>
+            </MudStack>
         }
         
         <MudHidden Breakpoint="Breakpoint.MdAndUp">
-            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.End" OnClick="@ToggleDrawer" />
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Style="color: #475569;" OnClick="@ToggleDrawer" />
         </MudHidden>
     </MudAppBar>
 
     <MudHidden Breakpoint="Breakpoint.MdAndUp">
         <MudDrawer @bind-Open="@_mobileDrawerOpen" Anchor="Anchor.End" Elevation="2" Variant="DrawerVariant.Temporary">
             <MudDrawerHeader>
-                <MudText Typo="Typo.h6">Menu</MudText>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Style="color: white; font-size: 1.25rem;" />
+                    </div>
+                    <MudText Typo="Typo.h6" Style="font-weight: 700;">Menu</MudText>
+                </MudStack>
             </MudDrawerHeader>
             <MudNavMenu>
                 <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" OnClick="@ToggleDrawer">Home</MudNavLink>
@@ -66,56 +92,70 @@
                 @if (isAuthenticated)
                 {
                     <MudNavLink Href="/my-rentals" Icon="@Icons.Material.Filled.EventNote" OnClick="@ToggleDrawer">My Rentals</MudNavLink>
+                    <MudNavLink Href="/profile" Icon="@Icons.Material.Filled.Person" OnClick="@ToggleDrawer">Profile</MudNavLink>
+                }
+                else
+                {
+                    <MudDivider Class="my-2" />
+                    <MudNavLink Href="/login" Icon="@Icons.Material.Filled.Login" OnClick="@ToggleDrawer">Sign In</MudNavLink>
+                    <MudNavLink Href="/register" Icon="@Icons.Material.Filled.PersonAdd" OnClick="@ToggleDrawer">Register</MudNavLink>
                 }
             </MudNavMenu>
         </MudDrawer>
     </MudHidden>
 
-    <MudMainContent>
+    <MudMainContent Style="background-color: #f8fafc;">
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-4" Style="min-height: calc(100vh - 200px);">
             @Body
         </MudContainer>
     </MudMainContent>
 
     <!-- Footer -->
-    <MudPaper Elevation="0" Square="true" Class="mt-auto" Style="background-color: var(--mud-palette-surface); border-top: 1px solid var(--mud-palette-divider);">
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+    <MudPaper Elevation="0" Square="true" Class="mt-auto" Style="background: #1e293b; color: white;">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-8">
             <MudGrid Spacing="4">
                 <MudItem xs="12" sm="6" md="4">
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" Size="Size.Large" />
-                            <MudText Typo="Typo.h6" Color="Color.Primary">
-                                <strong>Car Rental System</strong>
+                    <MudStack Spacing="3">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Style="color: white; font-size: 1.5rem;" />
+                            </div>
+                            <MudText Typo="Typo.h6" Style="font-weight: 700;">
+                                Car Rental System
                             </MudText>
                         </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        <MudText Typo="Typo.body2" Style="color: #94a3b8; line-height: 1.7;">
                             Your trusted partner for quality vehicle rentals. We provide reliable, well-maintained vehicles for all your travel needs.
                         </MudText>
                     </MudStack>
                 </MudItem>
                 
                 <MudItem xs="12" sm="6" md="4">
-                    <MudStack Spacing="2">
-                        <MudText Typo="Typo.h6"><strong>Quick Links</strong></MudText>
-                        <MudStack Spacing="1">
-                            <MudLink Href="/" Color="Color.Secondary" Typo="Typo.body2">
-                                <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" Class="mr-2" />
+                    <MudStack Spacing="3">
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Quick Links</MudText>
+                        <MudStack Spacing="2">
+                            <MudLink Href="/" Style="color: #94a3b8; text-decoration: none;">
                                 Home
                             </MudLink>
-                            <MudLink Href="/vehicles/browse" Color="Color.Secondary" Typo="Typo.body2">
-                                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Small" Class="mr-2" />
+                            <MudLink Href="/vehicles/browse" Style="color: #94a3b8; text-decoration: none;">
                                 Browse Vehicles
                             </MudLink>
                             @if (isAuthenticated)
                             {
-                                <MudLink Href="/my-rentals" Color="Color.Secondary" Typo="Typo.body2">
-                                    <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Small" Class="mr-2" />
+                                <MudLink Href="/my-rentals" Style="color: #94a3b8; text-decoration: none;">
                                     My Rentals
                                 </MudLink>
-                                <MudLink Href="/profile" Color="Color.Secondary" Typo="Typo.body2">
-                                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2" />
+                                <MudLink Href="/profile" Style="color: #94a3b8; text-decoration: none;">
                                     My Profile
+                                </MudLink>
+                            }
+                            else
+                            {
+                                <MudLink Href="/login" Style="color: #94a3b8; text-decoration: none;">
+                                    Sign In
+                                </MudLink>
+                                <MudLink Href="/register" Style="color: #94a3b8; text-decoration: none;">
+                                    Register
                                 </MudLink>
                             }
                         </MudStack>
@@ -123,39 +163,31 @@
                 </MudItem>
                 
                 <MudItem xs="12" sm="12" md="4">
-                    <MudStack Spacing="2">
-                        <MudText Typo="Typo.h6"><strong>Contact Us</strong></MudText>
-                        <MudStack Spacing="1">
+                    <MudStack Spacing="3">
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Contact Us</MudText>
+                        <MudStack Spacing="2">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                <MudIcon Icon="@Icons.Material.Filled.Email" Color="Color.Secondary" Size="Size.Small" />
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">info@carrental.com</MudText>
+                                <MudIcon Icon="@Icons.Material.Filled.Email" Style="color: #64748b;" Size="Size.Small" />
+                                <MudText Typo="Typo.body2" Style="color: #94a3b8;">info@iit.tn</MudText>
                             </MudStack>
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                <MudIcon Icon="@Icons.Material.Filled.Phone" Color="Color.Secondary" Size="Size.Small" />
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">+1 (555) 123-4567</MudText>
+                                <MudIcon Icon="@Icons.Material.Filled.Phone" Style="color: #64748b;" Size="Size.Small" />
+                                <MudText Typo="Typo.body2" Style="color: #94a3b8;">(+216) 74 46 50 20</MudText>
                             </MudStack>
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="Color.Secondary" Size="Size.Small" />
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">123 Main St, City, State</MudText>
-                            </MudStack>
-                            <MudStack Row="true" Spacing="2" Class="mt-2">
-                                <MudIconButton Icon="@Icons.Custom.Brands.Facebook" Color="Color.Secondary" Size="Size.Small" />
-                                <MudIconButton Icon="@Icons.Custom.Brands.Twitter" Color="Color.Secondary" Size="Size.Small" />
-                                <MudIconButton Icon="@Icons.Custom.Brands.LinkedIn" Color="Color.Secondary" Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.LocationOn" Style="color: #64748b;" Size="Size.Small" />
+                                <MudText Typo="Typo.body2" Style="color: #94a3b8;">Route Mharza km 1,5 Sfax, Tunisie</MudText>
                             </MudStack>
                         </MudStack>
                     </MudStack>
                 </MudItem>
             </MudGrid>
             
-            <MudDivider Class="my-4" />
+            <MudDivider Class="my-6" Style="border-color: #334155;" />
             
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 1rem;">
+                <MudText Typo="Typo.body2" Style="color: #64748b;">
                     &copy; @DateTime.Now.Year Car Rental System. All rights reserved.
-                </MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    Built with .NET 9 & Blazor WebAssembly
                 </MudText>
             </MudStack>
         </MudContainer>

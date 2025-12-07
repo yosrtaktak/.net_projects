@@ -76,3 +76,8 @@ public class PriceCalculationResponse
     public string StrategyUsed { get; set; } = string.Empty;
     public decimal? Discount { get; set; }
 }
+
+public class CompleteRentalDto
+{
+    public int EndMileage { get; set; }
+}

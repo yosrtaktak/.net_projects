@@ -1,4 +1,4 @@
-<MudThemeProvider />
+<MudThemeProvider Theme="_customTheme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -28,6 +28,91 @@
 
 @code {
     [Inject] private NavigationManager Navigation { get; set; } = default!;
+    
+    // Modern Professional Theme - Teal & Slate
+    private MudTheme _customTheme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            // Primary - Modern Teal
+            Primary = "#0d9488",
+            PrimaryContrastText = "#ffffff",
+            PrimaryDarken = "#0f766e",
+            PrimaryLighten = "#14b8a6",
+            
+            // Secondary - Slate
+            Secondary = "#475569",
+            SecondaryContrastText = "#ffffff",
+            SecondaryDarken = "#334155",
+            SecondaryLighten = "#64748b",
+            
+            // Tertiary - Amber for accents
+            Tertiary = "#f59e0b",
+            TertiaryContrastText = "#ffffff",
+            
+            // Status Colors
+            Success = "#10b981",
+            SuccessContrastText = "#ffffff",
+            Warning = "#f59e0b",
+            WarningContrastText = "#ffffff",
+            Error = "#ef4444",
+            ErrorContrastText = "#ffffff",
+            Info = "#3b82f6",
+            InfoContrastText = "#ffffff",
+            
+            // Background & Surface
+            Background = "#f8fafc",
+            Surface = "#ffffff",
+            
+            // Text Colors
+            TextPrimary = "#1e293b",
+            TextSecondary = "#64748b",
+            TextDisabled = "#94a3b8",
+            
+            // Other
+            AppbarBackground = "#ffffff",
+            AppbarText = "#1e293b",
+            DrawerBackground = "#ffffff",
+            DrawerText = "#1e293b",
+            DrawerIcon = "#64748b",
+            Divider = "#e2e8f0",
+            DividerLight = "#f1f5f9",
+            ActionDefault = "#64748b",
+            ActionDisabled = "#cbd5e1",
+            ActionDisabledBackground = "#f1f5f9",
+            Dark = "#1e293b",
+            DarkContrastText = "#ffffff",
+            DarkDarken = "#0f172a",
+            DarkLighten = "#334155",
+            HoverOpacity = 0.06,
+            GrayDefault = "#64748b",
+            GrayLight = "#94a3b8",
+            GrayLighter = "#cbd5e1",
+            GrayDark = "#475569",
+            GrayDarker = "#334155",
+            OverlayDark = "rgba(15, 23, 42, 0.5)",
+            OverlayLight = "rgba(255, 255, 255, 0.5)"
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#14b8a6",
+            PrimaryContrastText = "#ffffff",
+            Secondary = "#94a3b8",
+            Background = "#0f172a",
+            Surface = "#1e293b",
+            TextPrimary = "#f1f5f9",
+            TextSecondary = "#94a3b8",
+            AppbarBackground = "#1e293b",
+            DrawerBackground = "#1e293b",
+            Divider = "#334155"
+        },
+        LayoutProperties = new LayoutProperties()
+        {
+            DefaultBorderRadius = "12px",
+            DrawerWidthLeft = "280px",
+            DrawerWidthRight = "280px"
+        }
+    };
 
     private Type GetLayoutType(RouteData routeData)
     {

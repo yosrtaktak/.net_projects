@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(CarRentalDbContext))]
-    [Migration("20251206173219_SyncDatabaseWithCurrentModel")]
-    partial class SyncDatabaseWithCurrentModel
+    [Migration("20251207103240_FixVehicleCategoryRelationship")]
+    partial class FixVehicleCategoryRelationship
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -161,6 +161,71 @@ namespace Backend.Migrations
                         .IsUnique();
 
                     b.ToTable("Categories");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Fuel-efficient and budget-friendly vehicles perfect for city driving",
+                            DisplayOrder = 1,
+                            IsActive = true,
+                            Name = "Economy"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Small to medium-sized vehicles that are easy to park and maneuver",
+                            DisplayOrder = 2,
+                            IsActive = true,
+                            Name = "Compact"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Comfortable sedans with ample space for passengers and luggage",
+                            DisplayOrder = 3,
+                            IsActive = true,
+                            Name = "Midsize"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Spacious sport utility vehicles ideal for families and adventures",
+                            DisplayOrder = 4,
+                            IsActive = true,
+                            Name = "SUV"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Premium vehicles with top-tier comfort and advanced features",
+                            DisplayOrder = 5,
+                            IsActive = true,
+                            Name = "Luxury"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Large capacity vehicles perfect for group travel or cargo",
+                            DisplayOrder = 6,
+                            IsActive = true,
+                            Name = "Van"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "High-performance vehicles for an exhilarating driving experience",
+                            DisplayOrder = 7,
+                            IsActive = true,
+                            Name = "Sports"
+                        });
                 });
 
             modelBuilder.Entity("Backend.Core.Entities.Maintenance", b =>
@@ -343,7 +408,7 @@ namespace Backend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("Category")
+                    b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("DailyRate")
@@ -379,6 +444,8 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CategoryId");
+
                     b.HasIndex("RegistrationNumber")
                         .IsUnique();
 
@@ -389,7 +456,7 @@ namespace Backend.Migrations
                         {
                             Id = 1,
                             Brand = "Toyota",
-                            Category = 1,
+                            CategoryId = 2,
                             DailyRate = 35.00m,
                             FuelType = "Gasoline",
                             Mileage = 16000,
@@ -403,7 +470,7 @@ namespace Backend.Migrations
                         {
                             Id = 2,
                             Brand = "BMW",
-                            Category = 3,
+                            CategoryId = 4,
                             DailyRate = 85.00m,
                             FuelType = "Diesel",
                             Mileage = 5000,
@@ -417,7 +484,7 @@ namespace Backend.Migrations
                         {
                             Id = 3,
                             Brand = "Mercedes-Benz",
-                            Category = 4,
+                            CategoryId = 5,
                             DailyRate = 120.00m,
                             FuelType = "Gasoline",
                             Mileage = 3000,
@@ -431,7 +498,7 @@ namespace Backend.Migrations
                         {
                             Id = 4,
                             Brand = "Honda",
-                            Category = 0,
+                            CategoryId = 1,
                             DailyRate = 28.00m,
                             FuelType = "Gasoline",
                             Mileage = 20000,
@@ -702,6 +769,17 @@ namespace Backend.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("Backend.Core.Entities.Vehicle", b =>
+                {
+                    b.HasOne("Backend.Core.Entities.Category", "Category")
+                        .WithMany("Vehicles")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+                });
+
             modelBuilder.Entity("Backend.Core.Entities.VehicleDamage", b =>
                 {
                     b.HasOne("Backend.Core.Entities.Rental", "Rental")
@@ -774,6 +852,11 @@ namespace Backend.Migrations
             modelBuilder.Entity("Backend.Core.Entities.ApplicationUser", b =>
                 {
                     b.Navigation("Rentals");
+                });
+
+            modelBuilder.Entity("Backend.Core.Entities.Category", b =>
+                {
+                    b.Navigation("Vehicles");
                 });
 
             modelBuilder.Entity("Backend.Core.Entities.Rental", b =>

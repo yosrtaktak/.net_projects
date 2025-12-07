@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Backend.Core.Entities;
 
 public class Maintenance
@@ -5,6 +7,8 @@ public class Maintenance
     public int Id { get; set; }
     
     public int VehicleId { get; set; }
+    
+    [JsonIgnore]
     public Vehicle Vehicle { get; set; } = null!;
     
     public DateTime ScheduledDate { get; set; }

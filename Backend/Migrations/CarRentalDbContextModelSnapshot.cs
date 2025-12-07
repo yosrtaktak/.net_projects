@@ -260,51 +260,6 @@ namespace Backend.Migrations
                     b.HasIndex("VehicleId");
 
                     b.ToTable("Maintenances");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CompletedDate = new DateTime(2024, 1, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Cost = 85.00m,
-                            Description = "Regular oil change and filter replacement",
-                            ScheduledDate = new DateTime(2024, 1, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 2,
-                            Type = 0,
-                            VehicleId = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CompletedDate = new DateTime(2024, 2, 21, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Cost = 320.00m,
-                            Description = "Brake pad replacement and tire rotation",
-                            ScheduledDate = new DateTime(2024, 2, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 2,
-                            Type = 1,
-                            VehicleId = 1
-                        },
-                        new
-                        {
-                            Id = 3,
-                            CompletedDate = new DateTime(2024, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Cost = 50.00m,
-                            Description = "Annual vehicle inspection",
-                            ScheduledDate = new DateTime(2024, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 2,
-                            Type = 2,
-                            VehicleId = 1
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Cost = 150.00m,
-                            Description = "Scheduled air conditioning service",
-                            ScheduledDate = new DateTime(2024, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 0,
-                            Type = 0,
-                            VehicleId = 1
-                        });
                 });
 
             modelBuilder.Entity("Backend.Core.Entities.Payment", b =>
@@ -553,43 +508,6 @@ namespace Backend.Migrations
                     b.HasIndex("VehicleId");
 
                     b.ToTable("VehicleDamages");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Description = "Small scratch on rear bumper, likely from parking",
-                            RepairCost = 150.00m,
-                            RepairedDate = new DateTime(2024, 2, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ReportedBy = "Customer",
-                            ReportedDate = new DateTime(2024, 2, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Severity = 0,
-                            Status = 2,
-                            VehicleId = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Dent on driver's side door, moderate damage",
-                            RepairCost = 450.00m,
-                            RepairedDate = new DateTime(2024, 3, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ReportedBy = "Admin Staff",
-                            ReportedDate = new DateTime(2024, 3, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Severity = 1,
-                            Status = 2,
-                            VehicleId = 1
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Description = "Windshield chip from road debris",
-                            RepairCost = 200.00m,
-                            ReportedBy = "Employee",
-                            ReportedDate = new DateTime(2024, 4, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Severity = 0,
-                            Status = 1,
-                            VehicleId = 1
-                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

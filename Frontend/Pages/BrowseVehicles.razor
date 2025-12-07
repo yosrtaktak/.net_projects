@@ -8,30 +8,33 @@
 <PageTitle>Browse Vehicles - Car Rental</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge">
-    <MudStack Spacing="4">
+    <MudStack Spacing="5">
         <!-- Header -->
-        <MudStack Spacing="2">
-            <MudText Typo="Typo.h3"><strong>Find Your Perfect Ride</strong></MudText>
-            <MudText Typo="Typo.body1" Color="Color.Secondary">
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h3" Style="font-weight: 700; color: #1e293b;">Find Your Perfect Ride</MudText>
+            <MudText Typo="Typo.body1" Style="color: #64748b;">
                 Choose from our wide selection of quality vehicles
             </MudText>
         </MudStack>
 
         @if (isLoading)
         {
-            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Style="border-radius: 8px;" />
         }
         else
         {
             <!-- Filters -->
-            <MudPaper Elevation="2" Class="pa-4">
-                <MudGrid Spacing="2">
+            <MudPaper Elevation="1" Class="pa-5" Style="border-radius: 16px;">
+                <MudGrid Spacing="3">
                     <MudItem xs="12" sm="6" md="3">
                         <MudSelect T="int?" 
                                    Label="Category" 
                                    Value="@selectedCategoryId" 
                                    ValueChanged="@((int? value) => OnCategoryChanged(value))"
-                                   Clearable="true">
+                                   Clearable="true"
+                                   Variant="Variant.Outlined"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Filled.Category">
                             @foreach (var category in categories)
                             {
                                 <MudSelectItem T="int?" Value="@category.Id">@category.Name</MudSelectItem>
@@ -44,6 +47,7 @@
                                          Value="@maxDailyRate"
                                          ValueChanged="@((decimal? value) => OnMaxDailyRateChanged(value))"
                                          Min="0" 
+                                         Variant="Variant.Outlined"
                                          Adornment="Adornment.Start" 
                                          AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
                     </MudItem>
@@ -53,11 +57,18 @@
                                          Value="@minSeats"
                                          ValueChanged="@((int? value) => OnMinSeatsChanged(value))"
                                          Min="1" 
-                                         Max="15" />
+                                         Max="15"
+                                         Variant="Variant.Outlined"
+                                         Adornment="Adornment.Start"
+                                         AdornmentIcon="@Icons.Material.Filled.AirlineSeatReclineNormal" />
                     </MudItem>
                     <MudItem xs="12" sm="6" md="3">
-                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" 
-                                   OnClick="ClearFilters" Style="height: 56px;">
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Secondary" 
+                                   FullWidth="true" 
+                                   OnClick="ClearFilters" 
+                                   StartIcon="@Icons.Material.Filled.Clear"
+                                   Style="height: 56px; border-radius: 12px; border-width: 2px;">
                             Clear Filters
                         </MudButton>
                     </MudItem>
@@ -65,96 +76,97 @@
             </MudPaper>
 
             <!-- Results Count -->
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Showing @filteredVehicles.Count of @vehicles.Count vehicles
-            </MudText>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Style="color: #64748b;" Size="Size.Small" />
+                <MudText Typo="Typo.body2" Style="color: #64748b;">
+                    Showing <strong style="color: #1e293b;">@filteredVehicles.Count</strong> of <strong style="color: #1e293b;">@vehicles.Count</strong> vehicles
+                </MudText>
+            </MudStack>
 
             <!-- Vehicle Grid -->
-            <MudGrid Spacing="3">
+            <MudGrid Spacing="4">
                 @foreach (var vehicle in filteredVehicles)
                 {
                     <MudItem xs="12" sm="6" md="4">
-                        <MudCard Elevation="4" Style="height: 100%; transition: transform 0.2s;" 
-                                 Class="hover-card">
+                        <MudCard Elevation="2" Class="hover-card" Style="height: 100%; border-radius: 16px; overflow: hidden;">
                             @if (!string.IsNullOrEmpty(vehicle.ImageUrl))
                             {
                                 <MudCardMedia Image="@vehicle.ImageUrl" Height="200" />
                             }
                             else
                             {
-                                <div style="height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
-                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Large" Style="color: white; font-size: 4rem;" />
+                                <div style="height: 200px; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); display: flex; align-items: center; justify-content: center;">
+                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Style="color: white; font-size: 4rem; opacity: 0.9;" />
                                 </div>
                             }
-                            <MudCardContent>
-                                <MudStack Spacing="2">
+                            <MudCardContent Class="pa-5">
+                                <MudStack Spacing="3">
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
-                                        <MudText Typo="Typo.h5"><strong>@vehicle.Brand @vehicle.Model</strong></MudText>
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.h5" Style="font-weight: 700, color: #1e293b;">@vehicle.Brand @vehicle.Model</MudText>
+                                            <MudText Typo="Typo.caption" Style="color: #64748b;">@vehicle.Year</MudText>
+                                        </MudStack>
                                         @if (vehicle.Status == VehicleStatus.Available)
                                         {
-                                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">
+                                            <MudChip T="string" Size="Size.Small" Style="background: #dcfce7; color: #166534; font-weight: 600;">
                                                 Available
                                             </MudChip>
                                         }
                                         else
                                         {
-                                            <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                                            <MudChip T="string" Size="Size.Small" Style="background: #f1f5f9; color: #64748b; font-weight: 600;">
                                                 Unavailable
                                             </MudChip>
                                         }
                                     </MudStack>
                                     
-                                    <MudChip T="string" Size="Size.Small" Color="GetCategoryColor(vehicle.CategoryName)" Icon="@Icons.Material.Filled.Category">
+                                    <MudChip T="string" Size="Size.Small" Style="@(GetCategoryStyle(vehicle.CategoryName))" Icon="@Icons.Material.Filled.Category">
                                         @vehicle.CategoryName
                                     </MudChip>
                                     
                                     <MudDivider />
                                     
-                                    <MudStack Spacing="1">
-                                        <MudStack Row="true" Justify="Justify.SpaceBetween">
-                                            <MudText Typo="Typo.body2">
-                                                <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" /> Year
-                                            </MudText>
-                                            <MudText Typo="Typo.body2"><strong>@vehicle.Year</strong></MudText>
-                                        </MudStack>
-                                        <MudStack Row="true" Justify="Justify.SpaceBetween">
-                                            <MudText Typo="Typo.body2">
-                                                <MudIcon Icon="@Icons.Material.Filled.LocalGasStation" Size="Size.Small" /> Fuel
-                                            </MudText>
-                                            <MudText Typo="Typo.body2"><strong>@vehicle.FuelType</strong></MudText>
-                                        </MudStack>
-                                        <MudStack Row="true" Justify="Justify.SpaceBetween">
-                                            <MudText Typo="Typo.body2">
-                                                <MudIcon Icon="@Icons.Material.Filled.AirlineSeatReclineNormal" Size="Size.Small" /> Seats
-                                            </MudText>
-                                            <MudText Typo="Typo.body2"><strong>@vehicle.SeatingCapacity</strong></MudText>
-                                        </MudStack>
-                                        <MudStack Row="true" Justify="Justify.SpaceBetween">
-                                            <MudText Typo="Typo.body2">
-                                                <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small" /> Mileage
-                                            </MudText>
-                                            <MudText Typo="Typo.body2"><strong>@(vehicle.Mileage.ToString("N0")) km</strong></MudText>
-                                        </MudStack>
-                                    </MudStack>
+                                    <MudGrid Spacing="2">
+                                        <MudItem xs="6">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                <MudIcon Icon="@Icons.Material.Filled.LocalGasStation" Size="Size.Small" Style="color: #64748b;" />
+                                                <MudText Typo="Typo.body2" Style="color: #64748b;">@vehicle.FuelType</MudText>
+                                            </MudStack>
+                                        </MudItem>
+                                        <MudItem xs="6">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                <MudIcon Icon="@Icons.Material.Filled.AirlineSeatReclineNormal" Size="Size.Small" Style="color: #64748b;" />
+                                                <MudText Typo="Typo.body2" Style="color: #64748b;">@vehicle.SeatingCapacity seats</MudText>
+                                            </MudStack>
+                                        </MudItem>
+                                        <MudItem xs="6">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small" Style="color: #64748b;" />
+                                                <MudText Typo="Typo.body2" Style="color: #64748b;">@(vehicle.Mileage.ToString("N0")) km</MudText>
+                                            </MudStack>
+                                        </MudItem>
+                                    </MudGrid>
                                     
                                     <MudDivider />
                                     
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                         <MudStack Spacing="0">
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Daily Rate</MudText>
-                                            <MudText Typo="Typo.h4" Color="Color.Primary"><strong>$@(vehicle.DailyRate.ToString("N2"))</strong></MudText>
+                                            <MudText Typo="Typo.caption" Style="color: #64748b;">Daily Rate</MudText>
+                                            <MudText Typo="Typo.h5" Style="font-weight: 700; color: #0d9488;">$@(vehicle.DailyRate.ToString("N2"))</MudText>
                                         </MudStack>
                                         @if (vehicle.Status == VehicleStatus.Available)
                                         {
-                                            <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+                                            <MudButton Variant="Variant.Filled" 
+                                                       Color="Color.Primary" 
                                                        StartIcon="@Icons.Material.Filled.EventAvailable"
-                                                       OnClick="@(() => RentVehicle(vehicle))">
+                                                       OnClick="@(() => RentVehicle(vehicle))"
+                                                       Style="font-weight: 600; border-radius: 10px;">
                                                 Rent Now
                                             </MudButton>
                                         }
                                         else
                                         {
-                                            <MudButton Variant="Variant.Outlined" Color="Color.Default" Disabled="true">
+                                            <MudButton Variant="Variant.Outlined" Disabled="true" Style="border-radius: 10px;">
                                                 Not Available
                                             </MudButton>
                                         }
@@ -168,11 +180,11 @@
 
             @if (!filteredVehicles.Any())
             {
-                <MudPaper Elevation="2" Class="pa-8 text-center">
-                    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" Style="font-size: 4rem;" />
-                    <MudText Typo="Typo.h5" Color="Color.Secondary" Class="mt-4">No vehicles found</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Try adjusting your filters or check back later</MudText>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-4" OnClick="ClearFilters">
+                <MudPaper Elevation="1" Class="pa-8 text-center" Style="border-radius: 16px;">
+                    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Style="font-size: 5rem; color: #cbd5e1;" />
+                    <MudText Typo="Typo.h5" Style="color: #64748b; margin-top: 1rem; font-weight: 600;">No vehicles found</MudText>
+                    <MudText Typo="Typo.body2" Style="color: #94a3b8;">Try adjusting your filters or check back later</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="ClearFilters" Style="border-radius: 10px;">
                         Clear Filters
                     </MudButton>
                 </MudPaper>
@@ -180,16 +192,6 @@
         }
     </MudStack>
 </MudContainer>
-
-<style>
-    .hover-card {
-        cursor: pointer;
-    }
-    .hover-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important;
-    }
-</style>
 
 @code {
     private List<Vehicle> vehicles = new();
@@ -315,18 +317,21 @@
         }
     }
 
-    private Color GetCategoryColor(string categoryName)
+    private string GetCategoryStyle(string? categoryName)
     {
+        if (string.IsNullOrEmpty(categoryName))
+            return "background: #f1f5f9; color: #475569;";
+            
         return categoryName.ToLower() switch
         {
-            "economy" => Color.Info,
-            "compact" => Color.Primary,
-            "midsize" => Color.Success,
-            "suv" => Color.Success,
-            "luxury" => Color.Warning,
-            "sports" => Color.Error,
-            "van" => Color.Secondary,
-            _ => Color.Default
+            "economy" => "background: #dbeafe; color: #1e40af;",
+            "compact" => "background: #e0e7ff; color: #3730a3;",
+            "midsize" => "background: #dcfce7; color: #166534;",
+            "suv" => "background: #dcfce7; color: #166534;",
+            "luxury" => "background: #fef3c7; color: #92400e;",
+            "sports" => "background: #fee2e2; color: #991b1b;",
+            "van" => "background: #f3e8ff; color: #6b21a8;",
+            _ => "background: #f1f5f9; color: #475569;"
         };
     }
 }

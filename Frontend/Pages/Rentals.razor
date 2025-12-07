@@ -2,7 +2,9 @@
 @inject IApiService ApiService
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 @using Frontend.Models
+@using MudBlazor
 
 <PageTitle>My Rentals - Car Rental System</PageTitle>
 
@@ -157,12 +159,38 @@
     }
 </div>
 
+<!-- Complete Rental Dialog -->
+<MudDialog @bind-Visible="showCompleteDialog">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="mr-2" />
+            Complete Rental
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudNumericField @bind-Value="endMileage" 
+                        Label="End Mileage" 
+                        Variant="Variant.Outlined" 
+                        Min="0"
+                        HelperText="Enter the vehicle's mileage at return" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => showCompleteDialog = false)">Cancel</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="ConfirmCompleteRental">Complete</MudButton>
+    </DialogActions>
+</MudDialog>
+
 @code {
     private List<Rental> allRentals = new();
     private List<Rental> rentals = new();
     private RentalStatus? statusFilter = null;
     private bool isLoading = true;
     private string? userRole;
+    
+    // Dialog state
+    private bool showCompleteDialog = false;
+    private int selectedRentalId = 0;
+    private int endMileage = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -192,11 +220,37 @@
 
     private async Task CompleteRental(int rentalId)
     {
-        var success = await ApiService.CompleteRentalAsync(rentalId);
-        
-        if (success)
+        // Find the rental to get its vehicle mileage
+        var rental = allRentals.FirstOrDefault(r => r.Id == rentalId);
+        if (rental?.Vehicle != null)
         {
-            await LoadRentals();
+            endMileage = rental.Vehicle.Mileage;
+        }
+        
+        selectedRentalId = rentalId;
+        showCompleteDialog = true;
+    }
+
+    private async Task ConfirmCompleteRental()
+    {
+        try
+        {
+            var success = await ApiService.CompleteRentalAsync(selectedRentalId, endMileage);
+            
+            if (success)
+            {
+                Snackbar.Add("Rental completed successfully", Severity.Success);
+                showCompleteDialog = false;
+                await LoadRentals();
+            }
+            else
+            {
+                Snackbar.Add("Failed to complete rental", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
     }
 

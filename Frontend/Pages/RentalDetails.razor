@@ -328,7 +328,7 @@
     {
         try
         {
-            var success = await ApiService.CompleteRentalAsync(Id);
+            var success = await ApiService.CompleteRentalAsync(Id, endMileage);
             if (success)
             {
                 Snackbar.Add("Rental completed successfully", Severity.Success);

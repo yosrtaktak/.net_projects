@@ -132,6 +132,10 @@ public class RentalsController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Error creating rental: {ex.Message}", details = ex.StackTrace });
+        }
     }
 
     [HttpPost("calculate-price")]
@@ -186,6 +190,10 @@ public class RentalsController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Error calculating price: {ex.Message}", details = ex.StackTrace });
+        }
     }
 
     [Authorize(Roles = "Admin,Employee")]
@@ -197,9 +205,17 @@ public class RentalsController : ControllerBase
             var rental = await _rentalService.CompleteRentalAsync(id, dto.EndMileage);
             return Ok(MapRentalToDto(rental));
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Error completing rental: {ex.Message}", details = ex.StackTrace });
         }
     }
 
@@ -239,6 +255,10 @@ public class RentalsController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Error cancelling rental: {ex.Message}", details = ex.StackTrace });
+        }
     }
 
     [Authorize(Roles = "Admin,Employee")]
@@ -253,6 +273,10 @@ public class RentalsController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Error updating rental status: {ex.Message}", details = ex.StackTrace });
         }
     }
 

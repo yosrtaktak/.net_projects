@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Backend.Core.Entities;
 
@@ -26,7 +27,7 @@ public class Vehicle
     
     // Navigation property
     [ForeignKey(nameof(CategoryId))]
-    public Category Category { get; set; } = null!;
+    public Category? Category { get; set; }
     
     public decimal DailyRate { get; set; }
     
@@ -41,8 +42,13 @@ public class Vehicle
     public int SeatingCapacity { get; set; }
     
     // Navigation properties
+    [JsonIgnore]
     public ICollection<Rental> Rentals { get; set; } = new List<Rental>();
+    
+    [JsonIgnore]
     public ICollection<Maintenance> MaintenanceRecords { get; set; } = new List<Maintenance>();
+    
+    [JsonIgnore]
     public ICollection<VehicleDamage> DamageRecords { get; set; } = new List<VehicleDamage>();
 }
 

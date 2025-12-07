@@ -4,9 +4,11 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject HttpClient HttpClient
 @using Frontend.Models
 @using Frontend.Services
+@using Frontend.Shared
 
 <PageTitle>Manage Fleet - Car Rental System</PageTitle>
 
@@ -599,21 +601,50 @@
 
     private async Task DeleteVehicle(Vehicle vehicle)
     {
-        // Simple confirmation using Snackbar with action
-        Snackbar.Add($"Delete {vehicle.Brand} {vehicle.Model}? This cannot be undone.", Severity.Warning);
-        
-        // For proper confirmation, you'd typically use a MudDialog
-        // For now, direct delete - add confirmation dialog if needed
+        var confirmed = await ShowConfirmDialog(
+            "Delete Vehicle?",
+            $"Are you sure you want to delete {vehicle.Brand} {vehicle.Model}? This action cannot be undone.",
+            "Delete",
+            Color.Error
+        );
+
+        if (!confirmed) return;
+
         try
         {
             await ApiService.DeleteVehicleAsync(vehicle.Id);
             Snackbar.Add($"{vehicle.Brand} {vehicle.Model} deleted successfully", Severity.Success);
             await LoadVehicles();
         }
+        catch (InvalidOperationException ex)
+        {
+            // Show specific error message from the API
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
         catch (Exception ex)
         {
             Snackbar.Add($"Failed to delete vehicle: {ex.Message}", Severity.Error);
         }
+    }
+
+    private async Task<bool> ShowConfirmDialog(string title, string message, string confirmText, Color confirmColor)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Title"] = title,
+            ["Message"] = message,
+            ["ConfirmText"] = confirmText,
+            ["ConfirmColor"] = confirmColor
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("", parameters, new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Small, 
+            FullWidth = true 
+        });
+
+        var result = await dialog.Result;
+        return result != null && !result.Canceled;
     }
 
     private Color GetStatusColor(VehicleStatus status)

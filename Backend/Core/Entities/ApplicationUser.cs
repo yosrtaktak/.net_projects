@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using System.Text.Json.Serialization;
 
 namespace Backend.Core.Entities;
 
@@ -18,5 +19,6 @@ public class ApplicationUser : IdentityUser
     public CustomerTier Tier { get; set; } = CustomerTier.Standard;
     
     // Navigation properties
+    [JsonIgnore]
     public ICollection<Rental> Rentals { get; set; } = new List<Rental>();
 }

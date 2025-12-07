@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Backend.Core.Entities;
 
 public class VehicleDamage
@@ -5,9 +7,13 @@ public class VehicleDamage
     public int Id { get; set; }
     
     public int VehicleId { get; set; }
+    
+    [JsonIgnore]
     public Vehicle Vehicle { get; set; } = null!;
     
     public int? RentalId { get; set; }
+    
+    [JsonIgnore]
     public Rental? Rental { get; set; }
     
     public DateTime ReportedDate { get; set; }
