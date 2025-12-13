@@ -1,0 +1,32 @@
+<Project>
+  <PropertyGroup>
+    <!-- Code Analysis Configuration for all projects -->
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    
+    <!-- Treat warnings as informational by default (not errors) -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>5</WarningLevel>
+    
+    <!-- Generate XML documentation warnings -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn> <!-- Missing XML comments -->
+    
+    <!-- Code metrics and analysis -->
+    <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+    <RunAnalyzersDuringLiveAnalysis>true</RunAnalyzersDuringLiveAnalysis>
+  </PropertyGroup>
+  
+  <!-- StyleCop Configuration -->
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)analyzers.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  
+  <!-- Suppress specific warnings if needed -->
+  <PropertyGroup>
+    <!-- Suppress StyleCop documentation requirements for now -->
+    <NoWarn>$(NoWarn);SA1600;SA1601;SA1602;SA1633</NoWarn>
+  </PropertyGroup>
+</Project>

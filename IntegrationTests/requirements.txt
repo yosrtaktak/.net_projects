@@ -1,0 +1,7 @@
+pytest==7.4.3
+pytest-html==4.1.1
+selenium==4.16.0
+requests==2.31.0
+python-dotenv==1.0.0
+Faker==21.0.0
+pillow==10.1.0

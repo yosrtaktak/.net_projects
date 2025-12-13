@@ -12,191 +12,190 @@ using Backend.Infrastructure.UnitOfWork;
 using Backend.Application.Services;
 using Backend.Application.Factories;
 
-namespace Backend
+namespace Backend;
+
+public partial class Program
 {
-    public class Program
+    public static async Task Main(string[] args)
     {
-        public static async Task Main(string[] args)
+        var builder = WebApplication.CreateBuilder(args);
+
+        // Configure Kestrel to use specific ports
+        builder.WebHost.UseUrls("https://localhost:5000", "http://localhost:5002");
+
+        // Add DbContext
+        builder.Services.AddDbContext<CarRentalDbContext>(options =>
+            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+        // Add Identity
+        builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
-            var builder = WebApplication.CreateBuilder(args);
+            // Password settings
+            options.Password.RequireDigit = true;
+            options.Password.RequireLowercase = true;
+            options.Password.RequireUppercase = true;
+            options.Password.RequireNonAlphanumeric = true;
+            options.Password.RequiredLength = 6;
 
-            // Configure Kestrel to use specific ports
-            builder.WebHost.UseUrls("https://localhost:5000", "http://localhost:5002");
+            // User settings
+            options.User.RequireUniqueEmail = true;
 
-            // Add DbContext
-            builder.Services.AddDbContext<CarRentalDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            // Lockout settings
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.AllowedForNewUsers = true;
+        })
+        .AddEntityFrameworkStores<CarRentalDbContext>()
+        .AddDefaultTokenProviders();
 
-            // Add Identity
-            builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+        // Add JWT Authentication
+        var jwtSettings = builder.Configuration.GetSection("Jwt");
+        var secretKey = jwtSettings["SecretKey"];
+        
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
             {
-                // Password settings
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequireNonAlphanumeric = true;
-                options.Password.RequiredLength = 6;
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey!)),
+                ValidateIssuer = true,
+                ValidIssuer = jwtSettings["Issuer"],
+                ValidateAudience = true,
+                ValidAudience = jwtSettings["Audience"],
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+        });
 
-                // User settings
-                options.User.RequireUniqueEmail = true;
+        builder.Services.AddAuthorization();
 
-                // Lockout settings
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-                options.Lockout.MaxFailedAccessAttempts = 5;
-                options.Lockout.AllowedForNewUsers = true;
-            })
-            .AddEntityFrameworkStores<CarRentalDbContext>()
-            .AddDefaultTokenProviders();
+        // Register repositories
+        builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+        builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
+        builder.Services.AddScoped<IRentalRepository, RentalRepository>();
+        builder.Services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
+        builder.Services.AddScoped<IVehicleDamageRepository, VehicleDamageRepository>();
+        builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+        // Commented out during Customer to ApplicationUser refactoring
+        // builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+        
+        // Register services
+        builder.Services.AddScoped<IJwtService, JwtService>();
+        builder.Services.AddScoped<IRentalService, RentalService>();
+        builder.Services.AddScoped<IReportService, ReportService>();
+        
+        // Register factories
+        builder.Services.AddSingleton<IPricingStrategyFactory, PricingStrategyFactory>();
 
-            // Add JWT Authentication
-            var jwtSettings = builder.Configuration.GetSection("Jwt");
-            var secretKey = jwtSettings["SecretKey"];
-            
-            builder.Services.AddAuthentication(options =>
+        // Add CORS
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", policy =>
             {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(options =>
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
+
+        // Add controllers with JSON options to handle cycles
+        builder.Services.AddControllers()
+            .AddJsonOptions(options =>
             {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey!)),
-                    ValidateIssuer = true,
-                    ValidIssuer = jwtSettings["Issuer"],
-                    ValidateAudience = true,
-                    ValidAudience = jwtSettings["Audience"],
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
-                };
+                // Handle circular references
+                options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+                // Ignore null values to reduce payload size
+                options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
             });
 
-            builder.Services.AddAuthorization();
-
-            // Register repositories
-            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-            builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
-            builder.Services.AddScoped<IRentalRepository, RentalRepository>();
-            builder.Services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
-            builder.Services.AddScoped<IVehicleDamageRepository, VehicleDamageRepository>();
-            builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-            // Commented out during Customer to ApplicationUser refactoring
-            // builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-            
-            // Register services
-            builder.Services.AddScoped<IJwtService, JwtService>();
-            builder.Services.AddScoped<IRentalService, RentalService>();
-            builder.Services.AddScoped<IReportService, ReportService>();
-            
-            // Register factories
-            builder.Services.AddSingleton<IPricingStrategyFactory, PricingStrategyFactory>();
-
-            // Add CORS
-            builder.Services.AddCors(options =>
+        // Add Swagger/OpenAPI
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(c =>
+        {
+            c.SwaggerDoc("v1", new OpenApiInfo
             {
-                options.AddPolicy("AllowAll", policy =>
-                {
-                    policy.AllowAnyOrigin()
-                          .AllowAnyMethod()
-                          .AllowAnyHeader();
-                });
+                Title = "Car Rental Management API",
+                Version = "v1",
+                Description = "API for managing car rentals with multiple design patterns and ASP.NET Core Identity"
             });
 
-            // Add controllers with JSON options to handle cycles
-            builder.Services.AddControllers()
-                .AddJsonOptions(options =>
-                {
-                    // Handle circular references
-                    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-                    // Ignore null values to reduce payload size
-                    options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-                });
-
-            // Add Swagger/OpenAPI
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen(c =>
+            // Add JWT Authentication to Swagger
+            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
-                c.SwaggerDoc("v1", new OpenApiInfo
-                {
-                    Title = "Car Rental Management API",
-                    Version = "v1",
-                    Description = "API for managing car rentals with multiple design patterns and ASP.NET Core Identity"
-                });
+                Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.ApiKey,
+                Scheme = "Bearer"
+            });
 
-                // Add JWT Authentication to Swagger
-                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            c.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
                 {
-                    Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token",
-                    Name = "Authorization",
-                    In = ParameterLocation.Header,
-                    Type = SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer"
-                });
-
-                c.AddSecurityRequirement(new OpenApiSecurityRequirement
-                {
+                    new OpenApiSecurityScheme
                     {
-                        new OpenApiSecurityScheme
+                        Reference = new OpenApiReference
                         {
-                            Reference = new OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Bearer"
-                            }
-                        },
-                        Array.Empty<string>()
-                    }
-                });
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
             });
+        });
 
-            var app = builder.Build();
+        var app = builder.Build();
 
-            // Initialize database and seed data
-            using (var scope = app.Services.CreateScope())
+        // Initialize database and seed data
+        using (var scope = app.Services.CreateScope())
+        {
+            var services = scope.ServiceProvider;
+            try
             {
-                var services = scope.ServiceProvider;
-                try
-                {
-                    var context = services.GetRequiredService<CarRentalDbContext>();
-                    
-                    // Apply pending migrations
-                    await context.Database.MigrateAsync();
-                    
-                    // Seed Identity data (roles and users)
-                    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-                    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-                    await DbInitializer.InitializeAsync(userManager, roleManager);
-                    
-                    Console.WriteLine("Database initialized successfully!");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"An error occurred while initializing the database: {ex.Message}");
-                }
+                var context = services.GetRequiredService<CarRentalDbContext>();
+                
+                // Apply pending migrations
+                await context.Database.MigrateAsync();
+                
+                // Seed Identity data (roles and users)
+                var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+                await DbInitializer.InitializeAsync(userManager, roleManager);
+                
+                Console.WriteLine("Database initialized successfully!");
             }
-
-            // Configure the HTTP request pipeline
-            if (app.Environment.IsDevelopment())
+            catch (Exception ex)
             {
-                app.UseSwagger();
-                app.UseSwaggerUI(c =>
-                {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Car Rental API V1");
-                    c.RoutePrefix = string.Empty; // Set Swagger UI at app's root
-                });
+                Console.WriteLine($"An error occurred while initializing the database: {ex.Message}");
             }
-
-            app.UseHttpsRedirection();
-
-            app.UseCors("AllowAll");
-
-            app.UseAuthentication();
-            app.UseAuthorization();
-
-            app.MapControllers();
-
-            app.Run();
         }
+
+        // Configure the HTTP request pipeline
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Car Rental API V1");
+                c.RoutePrefix = string.Empty; // Set Swagger UI at app's root
+            });
+        }
+
+        app.UseHttpsRedirection();
+
+        app.UseCors("AllowAll");
+
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.MapControllers();
+
+        app.Run();
     }
 }

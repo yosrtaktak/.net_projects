@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Custom Analyzer Rules" Description="Code analysis rules for .NET projects" ToolsVersion="16.0">
+  <Rules AnalyzerId="Microsoft.CodeAnalysis.CSharp" RuleNamespace="Microsoft.CodeAnalysis.CSharp">
+    <Rule Id="CS8600" Action="Warning" />    <!-- Converting null literal or possible null value -->
+    <Rule Id="CS8601" Action="Warning" />    <!-- Possible null reference assignment -->
+    <Rule Id="CS8602" Action="Warning" />    <!-- Dereference of a possibly null reference -->
+    <Rule Id="CS8603" Action="Warning" />    <!-- Possible null reference return -->
+    <Rule Id="CS8604" Action="Warning" />    <!-- Possible null reference argument -->
+  </Rules>
+  
+  <Rules AnalyzerId="Microsoft.CodeAnalysis.NetAnalyzers" RuleNamespace="Microsoft.CodeAnalysis.NetAnalyzers">
+    <!-- Security Rules -->
+    <Rule Id="CA2100" Action="Warning" />    <!-- Review SQL queries for security vulnerabilities -->
+    <Rule Id="CA3075" Action="Warning" />    <!-- Insecure DTD processing -->
+    <Rule Id="CA5350" Action="Warning" />    <!-- Do not use weak cryptographic algorithms -->
+    <Rule Id="CA5351" Action="Warning" />    <!-- Do not use broken cryptographic algorithms -->
+    <Rule Id="CA3003" Action="Warning" />    <!-- Review code for file path injection vulnerabilities -->
+    <Rule Id="CA3006" Action="Warning" />    <!-- Review code for process command injection -->
+    
+    <!-- Design Rules -->
+    <Rule Id="CA1062" Action="Info" />       <!-- Validate arguments of public methods -->
+    <Rule Id="CA1031" Action="Info" />       <!-- Do not catch general exception types -->
+    <Rule Id="CA1063" Action="Warning" />    <!-- Implement IDisposable correctly -->
+    <Rule Id="CA1001" Action="Warning" />    <!-- Types that own disposable fields should be disposable -->
+    <Rule Id="CA1032" Action="Info" />       <!-- Implement standard exception constructors -->
+    <Rule Id="CA1065" Action="Warning" />    <!-- Do not raise exceptions in unexpected locations -->
+    
+    <!-- Performance Rules -->
+    <Rule Id="CA1806" Action="Warning" />    <!-- Do not ignore method results -->
+    <Rule Id="CA1813" Action="Info" />       <!-- Avoid unsealed attributes -->
+    <Rule Id="CA1819" Action="Info" />       <!-- Properties should not return arrays -->
+    <Rule Id="CA1822" Action="Info" />       <!-- Mark members as static -->
+    <Rule Id="CA1825" Action="Info" />       <!-- Avoid zero-length array allocations -->
+    <Rule Id="CA1827" Action="Info" />       <!-- Do not use Count/LongCount when Any can be used -->
+    <Rule Id="CA1829" Action="Info" />       <!-- Use Length/Count property instead of Enumerable.Count -->
+    
+    <!-- Reliability Rules -->
+    <Rule Id="CA2000" Action="Warning" />    <!-- Dispose objects before losing scope -->
+    <Rule Id="CA2007" Action="None" />       <!-- Do not directly await a Task -->
+    <Rule Id="CA2008" Action="Warning" />    <!-- Do not create tasks without passing a TaskScheduler -->
+    <Rule Id="CA2009" Action="Warning" />    <!-- Do not call ToImmutableCollection on an ImmutableCollection value -->
+    
+    <!-- Usage Rules -->
+    <Rule Id="CA2201" Action="Warning" />    <!-- Do not raise reserved exception types -->
+    <Rule Id="CA2207" Action="Warning" />    <!-- Initialize value type static fields inline -->
+    <Rule Id="CA2208" Action="Warning" />    <!-- Instantiate argument exceptions correctly -->
+    <Rule Id="CA2227" Action="Info" />       <!-- Collection properties should be read only -->
+    <Rule Id="CA2234" Action="Info" />       <!-- Pass System.Uri objects instead of strings -->
+  </Rules>
+  
+  <Rules AnalyzerId="SonarAnalyzer.CSharp" RuleNamespace="SonarAnalyzer.CSharp">
+    <!-- Security Hotspots -->
+    <Rule Id="S2068" Action="Warning" />     <!-- Credentials should not be hard-coded -->
+    <Rule Id="S4790" Action="Warning" />     <!-- Using weak hashing algorithms is security-sensitive -->
+    <Rule Id="S5332" Action="Warning" />     <!-- Using clear-text protocols is security-sensitive -->
+    
+    <!-- Bugs -->
+    <Rule Id="S2259" Action="Warning" />     <!-- Null pointers should not be dereferenced -->
+    <Rule Id="S3168" Action="Warning" />     <!-- "async" methods should not return "void" -->
+    <Rule Id="S3358" Action="Info" />        <!-- Ternary operators should not be nested -->
+    
+    <!-- Code Smells -->
+    <Rule Id="S1186" Action="Info" />        <!-- Methods should not be empty -->
+    <Rule Id="S3776" Action="Info" />        <!-- Cognitive Complexity of methods should not be too high -->
+    <Rule Id="S1066" Action="Info" />        <!-- Collapsible "if" statements should be merged -->
+    <Rule Id="S1481" Action="Info" />        <!-- Unused local variables should be removed -->
+  </Rules>
+  
+  <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
+    <!-- Documentation Rules - Disabled for now -->
+    <Rule Id="SA1600" Action="None" />       <!-- Elements should be documented -->
+    <Rule Id="SA1601" Action="None" />       <!-- Partial elements should be documented -->
+    <Rule Id="SA1602" Action="None" />       <!-- Enumeration items should be documented -->
+    <Rule Id="SA1633" Action="None" />       <!-- File should have header -->
+    
+    <!-- Layout Rules -->
+    <Rule Id="SA1200" Action="None" />       <!-- Using directives should be placed correctly -->
+    <Rule Id="SA1201" Action="Info" />       <!-- Elements should appear in the correct order -->
+    <Rule Id="SA1204" Action="Info" />       <!-- Static elements should appear before instance elements -->
+    
+    <!-- Naming Rules -->
+    <Rule Id="SA1300" Action="Warning" />    <!-- Element should begin with upper-case letter -->
+    <Rule Id="SA1309" Action="None" />       <!-- Field names should not begin with underscore -->
+    
+    <!-- Readability Rules -->
+    <Rule Id="SA1101" Action="None" />       <!-- Prefix local calls with this -->
+    <Rule Id="SA1413" Action="Info" />       <!-- Use trailing comma in multi-line initializers -->
+  </Rules>
+</RuleSet>
