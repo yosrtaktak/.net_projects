@@ -21,11 +21,13 @@ public partial class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Configure Kestrel to use specific ports
-        builder.WebHost.UseUrls("https://localhost:5000", "http://localhost:5002");
+        builder.WebHost.UseUrls("https://localhost:5000", "http://localhost:5001");
 
         // Add DbContext
         builder.Services.AddDbContext<CarRentalDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+                   .ConfigureWarnings(warnings => 
+                       warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
         // Add Identity
         builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -92,14 +94,15 @@ public partial class Program
         // Register factories
         builder.Services.AddSingleton<IPricingStrategyFactory, PricingStrategyFactory>();
 
-        // Add CORS
+        // Add CORS - Fix for CORS policy error
         builder.Services.AddCors(options =>
         {
-            options.AddPolicy("AllowAll", policy =>
+            options.AddPolicy("AllowFrontend", policy =>
             {
-                policy.AllowAnyOrigin()
+                policy.WithOrigins("http://localhost:5173", "https://localhost:5173")
                       .AllowAnyMethod()
-                      .AllowAnyHeader();
+                      .AllowAnyHeader()
+                      .AllowCredentials();
             });
         });
 
@@ -187,9 +190,10 @@ public partial class Program
             });
         }
 
-        app.UseHttpsRedirection();
+        // Comment out HTTPS redirection in development to avoid CORS preflight issues
+        // app.UseHttpsRedirection();
 
-        app.UseCors("AllowAll");
+        app.UseCors("AllowFrontend");
 
         app.UseAuthentication();
         app.UseAuthorization();

@@ -26,15 +26,17 @@ if (-not (Test-Path $FrontendPath)) {
     exit 1
 }
 
-# Kill any existing processes on ports 5000 and 5001
-Write-Host "🔄 Checking for existing services on ports 5000 and 5001..." -ForegroundColor Yellow
-$existingProcesses = Get-NetTCPConnection -LocalPort 5000,5001 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
+# Kill any existing processes on ports 5001 and 5173
+Write-Host "🔄 Checking for existing services on ports 5001 and 5173..." -ForegroundColor Yellow
+$existingProcesses = Get-NetTCPConnection -LocalPort 5001,5173 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
 if ($existingProcesses) {
     Write-Host "   Stopping existing processes..." -ForegroundColor Yellow
     foreach ($pid in $existingProcesses) {
         try {
-            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
-            Write-Host "   ✓ Stopped process $pid" -ForegroundColor Gray
+            if ($pid -ne 0) {
+                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                Write-Host "   ✓ Stopped process $pid" -ForegroundColor Gray
+            }
         } catch {}
     }
     Start-Sleep -Seconds 2
@@ -44,7 +46,7 @@ if ($existingProcesses) {
 Write-Host ""
 Write-Host "🚀 Starting Backend API (Port 5001)..." -ForegroundColor Green
 $backendJob = Start-Process -FilePath "dotnet" `
-    -ArgumentList "run --urls=http://localhost:5001" `
+    -ArgumentList "run --no-launch-profile" `
     -WorkingDirectory $BackendPath `
     -WindowStyle Normal `
     -PassThru
@@ -76,9 +78,9 @@ if (-not $backendReady) {
 
 # Start Frontend
 Write-Host ""
-Write-Host "🎨 Starting Frontend Blazor App (Port 5000)..." -ForegroundColor Green
+Write-Host "🎨 Starting Frontend Blazor App (Port 5173)..." -ForegroundColor Green
 $frontendJob = Start-Process -FilePath "dotnet" `
-    -ArgumentList "run --urls=http://localhost:5000" `
+    -ArgumentList "run" `
     -WorkingDirectory $FrontendPath `
     -WindowStyle Normal `
     -PassThru
@@ -93,7 +95,7 @@ $frontendReady = $false
 while ($attempt -lt $maxAttempts -and -not $frontendReady) {
     $attempt++
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:5000" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+        $response = Invoke-WebRequest -Uri "http://localhost:5173" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
         $frontendReady = $true
         Write-Host "   ✓ Frontend is ready!" -ForegroundColor Green
     } catch {
@@ -114,7 +116,7 @@ Write-Host "           Services Status              " -ForegroundColor Cyan
 Write-Host "=======================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Backend API:  http://localhost:5001" -ForegroundColor $(if($backendReady){"Green"}else{"Yellow"})
-Write-Host "Frontend:     http://localhost:5000" -ForegroundColor $(if($frontendReady){"Green"}else{"Yellow"})
+Write-Host "Frontend:     http://localhost:5173" -ForegroundColor $(if($frontendReady){"Green"}else{"Yellow"})
 Write-Host ""
 Write-Host "To run tests:" -ForegroundColor Cyan
 Write-Host "  cd IntegrationTests" -ForegroundColor White
